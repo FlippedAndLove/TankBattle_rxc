@@ -6,14 +6,18 @@
 Explosion::Explosion(qreal x, qreal y, int maxFrames, int interval)
     : QGraphicsPixmapItem(), frame(0), maxFrame(maxFrames)
 {
-    setPos(x, y);
-    // 使用绘图生成简单的爆炸圈
-    QPixmap pix(40, 40);
+    setPos(x - 4, y - 4);
+    // 使用绘图生成双圈爆炸
+    QPixmap pix(48, 48);
     pix.fill(Qt::transparent);
     QPainter painter(&pix);
-    painter.setBrush(Qt::yellow);
-    painter.setPen(QPen(Qt::red, 2));
-    painter.drawEllipse(0, 0, 40, 40);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setBrush(QColor(255, 220, 60));
+    painter.setPen(QPen(QColor(255, 80, 20), 2));
+    painter.drawEllipse(2, 2, 44, 44);
+    painter.setBrush(QColor(255, 150, 30, 190));
+    painter.setPen(QPen(QColor(255, 255, 255), 2));
+    painter.drawEllipse(10, 10, 28, 28);
     setPixmap(pix);
     setZValue(3);
 
@@ -30,7 +34,7 @@ void Explosion::nextFrame() {
     frame++;
     if (frame >= maxFrame) {
         timer->stop();
-        delete this;  // 自动销毁
+        deleteLater();  // 安全自动销毁
         return;
     }
     // 放大或改变颜色

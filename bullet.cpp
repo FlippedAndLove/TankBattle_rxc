@@ -1,13 +1,14 @@
 #include "bullet.h"
+#include "tank.h"
 #include <QPen>
 #include <QBrush>
 
-Bullet::Bullet(int dir, qreal x, qreal y)
-    : QGraphicsRectItem(x, y, BULLET_SIZE, BULLET_SIZE)
+Bullet::Bullet(Tank *owner, int dir, qreal x, qreal y)
+    : QGraphicsRectItem(0, 0, BULLET_SIZE, BULLET_SIZE), direction(dir), owner(owner)
 {
-    direction = dir;
-    setPen(QPen(Qt::black, 1));
-    setBrush(QBrush(Qt::black));
+    setPos(x, y);
+    setPen(QPen(Qt::white, 1));
+    setBrush(QBrush(Qt::red));
     setData(0, TYPE_BULLET);
     setZValue(2);
 }
@@ -24,3 +25,5 @@ void Bullet::move(float dt) {
 }
 
 int Bullet::getDirection() const { return direction; }
+Tank *Bullet::getOwner() const { return owner; }
+void Bullet::clearOwner() { owner = nullptr; }

@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/sounds">
+        <file alias="shoot.wav">assets/sounds/shoot.wav</file>
+        <file alias="explosion.wav">assets/sounds/explosion.wav</file>
+        <file alias="wave.wav">assets/sounds/wave.wav</file>
+        <file alias="gameover.wav">assets/sounds/gameover.wav</file>
+    </qresource>
+</RCC>

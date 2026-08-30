@@ -11,14 +11,14 @@ const int BULLET_SIZE  = 10;
 const int WALL_SIZE    = 20;
 
 // 移动速度
-const int PLAYER_SPEED = 180;
-const int ENEMY_SPEED  = 60;
+const int PLAYER_SPEED = 300;
+const int ENEMY_SPEED  = 120;
 const int BULLET_SPEED = 350;
 
 // 初始生命
 const int INIT_LIVES   = 3;
 //地图尺寸
-const int MAP_ROWS = 20;
+const int MAP_ROWS = 15;
 const int MAP_COLS = 20;
 
 

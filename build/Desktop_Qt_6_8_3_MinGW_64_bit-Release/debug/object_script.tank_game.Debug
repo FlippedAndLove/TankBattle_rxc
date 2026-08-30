@@ -1,0 +1,11 @@
+debug/main.o
+debug/mainwindow.o
+debug/tank.o
+debug/player.o
+debug/enemy.o
+debug/bullet.o
+debug/wall.o
+debug/steelwall.o
+debug/explosion.o
+debug/moc_mainwindow.o
+debug/moc_explosion.o

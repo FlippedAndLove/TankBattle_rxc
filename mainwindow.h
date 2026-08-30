@@ -6,6 +6,9 @@
 #include <QGraphicsScene>
 #include <QList>
 #include <QTimer>
+#include <QElapsedTimer>
+#include <QSoundEffect>
+#include <QUrl>
 #include "common.h"
 #include "player.h"
 #include "enemy.h"
@@ -29,18 +32,38 @@ private:
     QList<Wall*> walls;
     QList<EnemyTank*> enemies;
     QList<Bullet*> bullets;
-    QList<QTimer*> enemyAITimers;
+    QList<QGraphicsItem*> backgroundItems;
 
     // 游戏状态
     int score, lives, shootCooldown;
     bool gameRunning;
+    bool paused;
+    bool muted;
+    qint64 pauseStartMs;
+    qint64 clockOffsetMs;
+
+    // 波次状态
+    int waveNumber;
+    int enemiesToSpawn;
+    int enemiesAliveInWave;
+    qint64 nextEnemySpawnMs;
+    qint64 waveBreakUntilMs;
+
+    // 玩家状态
+    qint64 playerRespawnMs;
+    qint64 invincibleUntilMs;
+    qint64 lastBlinkMs;
 
     // 键盘状态
     bool keyUp, keyDown, keyLeft, keyRight, spacePressed;
 
     // UI文字
     QGraphicsTextItem *idText;
-    QGraphicsTextItem*scoreDisplay;
+    QGraphicsTextItem *scoreDisplay;
+    QGraphicsTextItem *livesDisplay;
+    QGraphicsTextItem *enemyDisplay;
+    QGraphicsTextItem *waveDisplay;
+    QGraphicsTextItem *pauseText;
 
     // 主循环定时器
     QTimer *gameLoopTimer;
@@ -50,7 +73,24 @@ private:
     // 存储所有地形对象（用于清理）
     QList<QGraphicsItem*> terrainItems;
     // 时间相关
-    qint64 lastTime;
+    QElapsedTimer frameClock;
+    qint64 lastFrameMs;
+    qint64 lastHudUpdateMs;
+
+    // 音效
+    QSoundEffect *shootSound;
+    QSoundEffect *explosionSound;
+    QSoundEffect *waveSound;
+    QSoundEffect *gameOverSound;
+
+    void startWave(int wave);
+    void spawnEnemy(qint64 nowMs);
+    void respawnPlayer();
+    void togglePause();
+    void showWaveBanner(const QString &text, int durationMs);
+    void playSound(QSoundEffect *sound);
+    int aliveEnemyCount() const;
+    void cleanupDeadEnemies();
 
 public:
     MainWindow(QWidget *parent = nullptr);
@@ -59,11 +99,11 @@ public:
     void initGame();
     void clearGame();
     void initBackground();
-    void initEnemies();
     void updateUI();
     void fireBullet(Tank *tank);
-    void moveTank(Tank *tank, qreal dx, qreal dy);
-    void gameOver(bool win);
+    bool moveTank(Tank *tank, qreal dx, qreal dy);
+    bool isBlocked(Tank *tank) const;
+    void gameOver();
     void resetGame();
     void initMap();//地图初始化函数
 

@@ -1,0 +1,12 @@
+release/main.o
+release/mainwindow.o
+release/tank.o
+release/player.o
+release/enemy.o
+release/bullet.o
+release/wall.o
+release/steelwall.o
+release/explosion.o
+release/qrc_assets.o
+release/moc_mainwindow.o
+release/moc_explosion.o

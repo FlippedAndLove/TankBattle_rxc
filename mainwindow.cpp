@@ -3,6 +3,7 @@
 #include <QMessageBox>
 #include <QKeyEvent>
 #include <QRandomGenerator>
+#include <QFontMetrics>
 #include <QGraphicsEllipseItem>
 #include <QGraphicsRectItem>
 #include <QGraphicsTextItem>
@@ -10,12 +11,17 @@
 #include <QBrush>
 #include <QPen>
 #include <QColor>
-#include<QDateTime>
-#include <QDebug>
 #include"steelwall.h"
 #include"explosion.h"
 
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),player(nullptr),gameLoopTimer(nullptr),lastTime(0),scoreDisplay(nullptr) {
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent), player(nullptr), paused(false), muted(false), pauseStartMs(0), clockOffsetMs(0),
+      waveNumber(0), enemiesToSpawn(0), enemiesAliveInWave(0),
+      nextEnemySpawnMs(0), waveBreakUntilMs(0), playerRespawnMs(0),
+      invincibleUntilMs(0), lastBlinkMs(0), idText(nullptr), scoreDisplay(nullptr),
+      livesDisplay(nullptr), enemyDisplay(nullptr), waveDisplay(nullptr), pauseText(nullptr),
+      gameLoopTimer(nullptr), lastFrameMs(0), lastHudUpdateMs(0),
+      shootSound(nullptr), explosionSound(nullptr), waveSound(nullptr), gameOverSound(nullptr) {
     setWindowTitle("坦克大战 - RXC");
     resize(SCENE_WIDTH + 20, SCENE_HEIGHT + 80);
 
@@ -29,8 +35,24 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),player(nullptr),ga
 
     statusBar()->showMessage("得分: 0  生命: 3");
 
+    view->setFocusPolicy(Qt::NoFocus);
+    setFocus();
+
+    shootSound = new QSoundEffect(this);
+    shootSound->setSource(QUrl("qrc:/sounds/shoot.wav"));
+    shootSound->setVolume(0.45);
+    explosionSound = new QSoundEffect(this);
+    explosionSound->setSource(QUrl("qrc:/sounds/explosion.wav"));
+    explosionSound->setVolume(0.7);
+    waveSound = new QSoundEffect(this);
+    waveSound->setSource(QUrl("qrc:/sounds/wave.wav"));
+    waveSound->setVolume(0.6);
+    gameOverSound = new QSoundEffect(this);
+    gameOverSound->setSource(QUrl("qrc:/sounds/gameover.wav"));
+    gameOverSound->setVolume(0.7);
+
     initGame();
-    setFocusPolicy(Qt::StrongFocus);
+    statusBar()->showMessage("方向键/WASD移动，空格射击；P暂停，M静音，R重开");
 }
 
 MainWindow::~MainWindow() {
@@ -45,65 +67,78 @@ void MainWindow::initGame() {
     lives = INIT_LIVES;
     shootCooldown = 0;
     gameRunning = true;
+    paused = false;
+    clockOffsetMs = 0;
+    waveNumber = 0;
+    enemiesToSpawn = 0;
+    enemiesAliveInWave = 0;
+    nextEnemySpawnMs = 0;
+    waveBreakUntilMs = 0;
+    playerRespawnMs = 0;
+    invincibleUntilMs = 0;
+    lastBlinkMs = 0;
     keyUp = keyDown = keyLeft = keyRight = false;
     spacePressed = false;
+    frameClock.start();
+    lastFrameMs = 0;
+    lastHudUpdateMs = 0;
 
     initBackground();
     initMap();
 
-    player = new PlayerTank(60, SCENE_HEIGHT - TANK_SIZE - 60);
+    player = new PlayerTank(160, 480);
     scene->addItem(player);
 
-    initEnemies();
+    startWave(1);
     updateUI();
 
     gameLoopTimer = new QTimer(this);
     connect(gameLoopTimer, &QTimer::timeout, this, &MainWindow::gameLoop);
-    gameLoopTimer->start(20);
-    //调试输出
-    qDebug()<<"砖墙数量："<<walls.size();
-    qDebug()<<"敌方坦克数量："<<enemies.size();
+    gameLoopTimer->start(16);
+    // 游戏开始：显示操作提示
+    QGraphicsTextItem *hint = new QGraphicsTextItem("WASD/方向键移动，空格开火；P 暂停，M 静音");
+    hint->setPos(SCENE_WIDTH/2 - 200, SCENE_HEIGHT/2 - 20);
+    hint->setDefaultTextColor(Qt::white);
+    QFont hintFont("Arial", 18, QFont::Bold);
+    hint->setFont(hintFont);
+    hint->setZValue(10);
+    scene->addItem(hint);
+    // 3秒后淡出消失
+    QTimer::singleShot(3000, [hint]() {
+        hint->deleteLater();
+    });
 }
 
 void MainWindow::clearGame() {
-    // 1. 停止并删除所有 AI 定时器
-    for (QTimer *t : enemyAITimers) {
-        if (t) {           // 防止空指针
-            t->stop();
-            delete t;
-        }
-    }
-    enemyAITimers.clear();   // 清空列表
-
-    // 2. 停止并删除主循环定时器
+    // 1. 停止并删除主循环定时器
     if (gameLoopTimer) {
         gameLoopTimer->stop();
         delete gameLoopTimer;
         gameLoopTimer = nullptr;   // 避免野指针
     }
 
-    // 3. 从场景移除并删除所有砖墙
+    // 2. 从场景移除并删除所有砖墙
     for (Wall *w : walls) {
         scene->removeItem(w);
         delete w;
     }
     walls.clear();
 
-    // 4. 从场景移除并删除所有敌方坦克
+    // 3. 从场景移除并删除所有敌方坦克
     for (EnemyTank *e : enemies) {
         scene->removeItem(e);
         delete e;
     }
     enemies.clear();
 
-    // 5. 从场景移除并删除所有子弹
+    // 4. 从场景移除并删除所有子弹
     for (Bullet *b : bullets) {
         scene->removeItem(b);
         delete b;
     }
     bullets.clear();
 
-    // 6. 移除并删除玩家坦克
+    // 5. 移除并删除玩家坦克
     if (player) {
         scene->removeItem(player);
         delete player;
@@ -115,144 +150,352 @@ void MainWindow::clearGame() {
         delete item;
     }
     terrainItems.clear();
+
+    // 6. 移除并删除背景装饰和 HUD
+    for (QGraphicsItem *item : backgroundItems) {
+        scene->removeItem(item);
+        delete item;
+    }
+    backgroundItems.clear();
+    scoreDisplay = nullptr;
+    livesDisplay = nullptr;
+    enemyDisplay = nullptr;
+    waveDisplay = nullptr;
+    idText = nullptr;
+    if (pauseText) {
+        scene->removeItem(pauseText);
+        delete pauseText;
+        pauseText = nullptr;
+    }
 }
 
-//背景（校园风格）
+// 背景（经典战场）
 void MainWindow::initBackground() {
-    scene->setBackgroundBrush(QBrush(QColor(34, 139, 34))); // 草地
+    scene->setBackgroundBrush(QBrush(QColor(86, 74, 56))); // 泥地
 
-    // 小路
-    QGraphicsRectItem *road = new QGraphicsRectItem(0, 300, SCENE_WIDTH, 40);
-    road->setPen(QPen(Qt::NoPen));
-    road->setBrush(QBrush(QColor(160, 160, 160)));
-    road->setZValue(-1);
-    scene->addItem(road);
+    auto addBackground = [this](QGraphicsItem *item) {
+        scene->addItem(item);
+        backgroundItems.append(item);
+    };
 
-    // 花坛
-    QGraphicsEllipseItem *flower1 = new QGraphicsEllipseItem(80, 480, 50, 50);
-    flower1->setPen(QPen(Qt::NoPen));
-    flower1->setBrush(QBrush(QColor(255, 182, 193)));
-    flower1->setZValue(-1);
-    scene->addItem(flower1);
+    // 弹坑
+    QGraphicsEllipseItem *crater1 = new QGraphicsEllipseItem(70, 110, 56, 40);
+    crater1->setPen(QPen(Qt::NoPen));
+    crater1->setBrush(QColor(48, 42, 32));
+    crater1->setZValue(-1);
+    addBackground(crater1);
 
-    QGraphicsEllipseItem *flower2 = new QGraphicsEllipseItem(130, 470, 40, 40);
-    flower2->setPen(QPen(Qt::NoPen));
-    flower2->setBrush(QBrush(QColor(255, 105, 180)));
-    flower2->setZValue(-1);
-    scene->addItem(flower2);
+    QGraphicsEllipseItem *crater2 = new QGraphicsEllipseItem(640, 380, 70, 46);
+    crater2->setPen(QPen(Qt::NoPen));
+    crater2->setBrush(QColor(48, 42, 32));
+    crater2->setZValue(-1);
+    addBackground(crater2);
 
-    QGraphicsEllipseItem *flower3 = new QGraphicsEllipseItem(600, 100, 60, 60);
-    flower3->setPen(QPen(Qt::NoPen));
-    flower3->setBrush(QBrush(QColor(255, 215, 0)));
-    flower3->setZValue(-1);
-    scene->addItem(flower3);
+    QGraphicsEllipseItem *crater3 = new QGraphicsEllipseItem(350, 80, 46, 34);
+    crater3->setPen(QPen(Qt::NoPen));
+    crater3->setBrush(QColor(52, 46, 36));
+    crater3->setZValue(-1);
+    addBackground(crater3);
 
-    // 教学楼
-    QGraphicsRectItem *building = new QGraphicsRectItem(680, 50, 100, 200);
-    building->setPen(QPen(Qt::black, 1));
-    building->setBrush(QBrush(QColor(200, 180, 150)));
-    building->setZValue(-1);
-    scene->addItem(building);
-    for (int i = 0; i < 3; ++i) {
-        for (int j = 0; j < 2; ++j) {
-            QGraphicsRectItem *window = new QGraphicsRectItem(690 + j*40, 70 + i*50, 20, 20);
-            window->setPen(QPen(Qt::blue, 1));
-            window->setBrush(QBrush(QColor(135, 206, 250)));
-            window->setZValue(-1);
-            scene->addItem(window);
-        }
-    }
+    QGraphicsEllipseItem *crater4 = new QGraphicsEllipseItem(720, 260, 52, 38);
+    crater4->setPen(QPen(Qt::NoPen));
+    crater4->setBrush(QColor(48, 42, 32));
+    crater4->setZValue(-1);
+    addBackground(crater4);
+
+    // 车辙
+    QGraphicsRectItem *track1 = new QGraphicsRectItem(90, 520, 190, 8);
+    track1->setPen(QPen(Qt::NoPen));
+    track1->setBrush(QColor(50, 44, 34));
+    track1->setZValue(-1);
+    addBackground(track1);
+
+    QGraphicsRectItem *track2 = new QGraphicsRectItem(540, 540, 170, 8);
+    track2->setPen(QPen(Qt::NoPen));
+    track2->setBrush(QColor(50, 44, 34));
+    track2->setZValue(-1);
+    addBackground(track2);
+
+    // RXC 背景水印（不参与碰撞）
+    QGraphicsTextItem *bgText = scene->addText("RXC");
+    bgText->setPos(210, 200);
+    QFont bgFont("Arial", 150, QFont::Bold);
+    bgText->setFont(bgFont);
+    bgText->setDefaultTextColor(QColor(255, 255, 255, 26));
+    bgText->setZValue(-2);
+    backgroundItems.append(bgText);
 
     // 右上角 "RXC" 文字标识
     idText = scene->addText("RXC");
-    idText->setPos(SCENE_WIDTH - 130, 20);
-    QFont font("Arial", 32, QFont::Bold);
-    idText->setFont(font);
+    idText->setPos(SCENE_WIDTH - 130, 8);
+    QFont logoFont("Arial", 32, QFont::Bold);
+    idText->setFont(logoFont);
     idText->setDefaultTextColor(QColor(255, 255, 0));
     idText->setZValue(10);
-    //得分和生命值的视觉展示
-    QGraphicsTextItem *scoreDisplay = scene->addText("得分: 0");
-    scoreDisplay->setPos(20, 20);
+    backgroundItems.append(idText);
+
+    // 场景 HUD
+    QFont hudFont("Arial", 14, QFont::Bold);
+    scoreDisplay = scene->addText("得分: 0");
+    scoreDisplay->setPos(16, 8);
+    scoreDisplay->setFont(hudFont);
     scoreDisplay->setDefaultTextColor(Qt::white);
     scoreDisplay->setZValue(10);
+    backgroundItems.append(scoreDisplay);
+
+    livesDisplay = scene->addText("生命: 3");
+    livesDisplay->setPos(150, 8);
+    livesDisplay->setFont(hudFont);
+    livesDisplay->setDefaultTextColor(Qt::white);
+    livesDisplay->setZValue(10);
+    backgroundItems.append(livesDisplay);
+
+    enemyDisplay = scene->addText("敌人: 3");
+    enemyDisplay->setPos(430, 8);
+    enemyDisplay->setFont(hudFont);
+    enemyDisplay->setDefaultTextColor(Qt::white);
+    enemyDisplay->setZValue(10);
+    backgroundItems.append(enemyDisplay);
+
+    waveDisplay = scene->addText("波次: 1");
+    waveDisplay->setPos(290, 8);
+    waveDisplay->setFont(hudFont);
+    waveDisplay->setDefaultTextColor(Qt::white);
+    waveDisplay->setZValue(10);
+    backgroundItems.append(waveDisplay);
 }
 
+void MainWindow::startWave(int wave) {
+    waveNumber = wave;
+    enemiesToSpawn = qMin(3 + (waveNumber - 1), 8);
+    enemiesAliveInWave = 0;
+    waveBreakUntilMs = 0;
+    qint64 nowMs = frameClock.elapsed() - clockOffsetMs;
+    nextEnemySpawnMs = nowMs + 600;
+    showWaveBanner(QString("第 %1 波").arg(waveNumber), 1600);
+    playSound(waveSound);
+    updateUI();
+}
 
-// 敌方坦克
-void MainWindow::initEnemies() {
+void MainWindow::spawnEnemy(qint64 nowMs) {
+    if (enemiesToSpawn <= 0 || nowMs < nextEnemySpawnMs) return;
+    if (aliveEnemyCount() >= 4) return;
+
+    const qreal spawnXs[] = {120.0, 400.0, 680.0};
+    int start = QRandomGenerator::global()->bounded(3);
     for (int i = 0; i < 3; ++i) {
-        qreal x = SCENE_WIDTH - TANK_SIZE - 40 - i * 60;
-        qreal y = 40 + i * 30;
-        EnemyTank *enemy = new EnemyTank(x, y);
+        int idx = (start + i) % 3;
+        QPointF p(spawnXs[idx], 60.0);
+        bool free = true;
+        for (EnemyTank *e : enemies) {
+            if (e->isAlive() && (e->pos() - p).manhattanLength() < 120.0) {
+                free = false;
+                break;
+            }
+        }
+        if (!free) continue;
+
+        EnemyTank *enemy = new EnemyTank(p.x(), p.y());
         scene->addItem(enemy);
         enemies.append(enemy);
+        enemiesAliveInWave++;
+        enemiesToSpawn--;
+        qreal interval = qMax(1000.0, 2000.0 - (waveNumber - 1) * 150.0);
+        nextEnemySpawnMs = nowMs + interval;
+        return;
+    }
+    nextEnemySpawnMs = nowMs + 300;
+}
 
-        QTimer *aiTimer = new QTimer(this);
-        aiTimer->start(400 + QRandomGenerator::global()->bounded(400));
-        connect(aiTimer, &QTimer::timeout, [this, enemy]() {
-            if (!gameRunning || !enemy->isAlive()) return;
-            if (QRandomGenerator::global()->bounded(4) == 0) {
-                int dirs[] = {Qt::Key_Up, Qt::Key_Down, Qt::Key_Left, Qt::Key_Right};
-                enemy->setDirection(dirs[QRandomGenerator::global()->bounded(4)]);
-            }
-            if (QRandomGenerator::global()->bounded(5) == 0) {
-                fireBullet(enemy);
-            }
-        });
-        enemyAITimers.append(aiTimer);
+void MainWindow::respawnPlayer() {
+    player->setPos(160, 480);
+    player->setDirection(Qt::Key_Up);
+    player->setAlive(true);
+    player->setVisible(true);
+    player->setOpacity(1.0);
+    qint64 nowMs = frameClock.elapsed() - clockOffsetMs;
+    invincibleUntilMs = nowMs + 2000;
+    lastBlinkMs = 0;
+}
+
+void MainWindow::togglePause() {
+    if (!gameRunning) return;
+    if (paused) {
+        clockOffsetMs += frameClock.elapsed() - pauseStartMs;
+        paused = false;
+        if (pauseText) {
+            scene->removeItem(pauseText);
+            delete pauseText;
+            pauseText = nullptr;
+        }
+        statusBar()->showMessage("已继续 (P/Esc 暂停, M 静音)");
+    } else {
+        pauseStartMs = frameClock.elapsed();
+        paused = true;
+        pauseText = scene->addText("已暂停 - 按 P 继续");
+        QFont f("Arial", 28, QFont::Bold);
+        pauseText->setFont(f);
+        pauseText->setDefaultTextColor(QColor(255, 230, 120));
+        pauseText->setZValue(30);
+        pauseText->setPos(SCENE_WIDTH / 2 - 170, SCENE_HEIGHT / 2 - 40);
     }
 }
-//UI更新
+
+void MainWindow::showWaveBanner(const QString &text, int durationMs) {
+    QGraphicsTextItem *banner = scene->addText(text);
+    QFont f("Arial", 22, QFont::Bold);
+    banner->setFont(f);
+    banner->setDefaultTextColor(QColor(255, 235, 150));
+    banner->setZValue(20);
+    QFontMetrics fm(f);
+    qreal w = fm.horizontalAdvance(text);
+    banner->setPos(qMax(0.0, (SCENE_WIDTH - w) / 2), SCENE_HEIGHT / 2 - 40);
+    QTimer::singleShot(durationMs, [banner]() { banner->deleteLater(); });
+}
+
+void MainWindow::playSound(QSoundEffect *sound) {
+    if (muted || !sound) return;
+    sound->play();
+}
+
+int MainWindow::aliveEnemyCount() const {
+    int n = 0;
+    for (EnemyTank *e : enemies) {
+        if (e->isAlive()) n++;
+    }
+    return n;
+}
+
+void MainWindow::cleanupDeadEnemies() {
+    for (int i = enemies.size() - 1; i >= 0; --i) {
+        EnemyTank *enemy = enemies[i];
+        if (enemy->isAlive()) continue;
+        for (Bullet *b : bullets) {
+            if (b->getOwner() == enemy) {
+                b->clearOwner();
+            }
+        }
+        enemies.removeAt(i);
+        delete enemy;
+    }
+}
+// UI更新
 void MainWindow::updateUI() {
-    statusBar()->showMessage(QString("得分: %1  生命: %2").arg(score).arg(lives));
-    if(scoreDisplay){
-        scoreDisplay->setPlainText(QString("得分：%1").arg(score));
+    QString msg = QString("得分: %1  生命: %2  波次: %3").arg(score).arg(lives).arg(waveNumber);
+
+    // 计算存活敌人数量
+    int aliveCount = aliveEnemyCount();
+    msg += QString("  敌人: %1").arg(aliveCount);
+
+    statusBar()->showMessage(msg);
+
+    if (scoreDisplay) {
+        scoreDisplay->setPlainText(QString("得分: %1").arg(score));
+    }
+    if (livesDisplay) {
+        livesDisplay->setPlainText(QString("生命: %1").arg(lives));
+    }
+    if (enemyDisplay) {
+        enemyDisplay->setPlainText(QString("敌人: %1").arg(aliveCount));
+    }
+    if (waveDisplay) {
+        waveDisplay->setPlainText(QString("波次: %1").arg(waveNumber));
     }
 }
 
 // 开火
 void MainWindow::fireBullet(Tank *tank) {
     if (!gameRunning) return;
+    if (!tank->isAlive()) return;
     if (tank->data(0).toInt() == TYPE_PLAYER) {
         if (shootCooldown > 0) return;
-        shootCooldown = 12;
+        shootCooldown = 18;
     }
     QPointF muzzle = tank->getMuzzlePos();
-    Bullet *bullet = new Bullet(tank->getDirection(), muzzle.x(), muzzle.y());
+    Bullet *bullet = new Bullet(tank, tank->getDirection(), muzzle.x(), muzzle.y());
     scene->addItem(bullet);
     bullets.append(bullet);
+    playSound(shootSound);
 }
 
 // 移动坦克（含碰撞）
-void MainWindow::moveTank(Tank *tank, qreal dx, qreal dy) {
-    if (!tank->isAlive()) return;
-    qreal oldX = tank->x(), oldY = tank->y();
-    tank->setPos(oldX + dx, oldY + dy);
+bool MainWindow::moveTank(Tank *tank, qreal dx, qreal dy) {
+    if (!tank->isAlive()) return false;
 
-    if (tank->x() < 0 || tank->x() > SCENE_WIDTH - TANK_SIZE ||
-        tank->y() < 0 || tank->y() > SCENE_HEIGHT - TANK_SIZE) {
-        tank->setPos(oldX, oldY);
-        return;
+    bool moved = false;
+    qreal oldX = tank->x();
+    qreal newX = oldX + dx;
+    if (newX >= 0 && newX <= SCENE_WIDTH - TANK_SIZE) {
+        tank->setX(newX);
+        if (isBlocked(tank)) {
+            tank->setX(oldX);
+        } else {
+            moved = true;
+        }
     }
 
+    qreal oldY = tank->y();
+    qreal newY = oldY + dy;
+    if (newY >= 0 && newY <= SCENE_HEIGHT - TANK_SIZE) {
+        tank->setY(newY);
+        if (isBlocked(tank)) {
+            tank->setY(oldY);
+        } else {
+            moved = true;
+        }
+    }
+    return moved;
+}
+
+bool MainWindow::isBlocked(Tank *tank) const {
     QList<QGraphicsItem*> colliding = tank->collidingItems();
     for (QGraphicsItem *item : colliding) {
         int type = item->data(0).toInt();
         if (type == TYPE_WALL || type == TYPE_STEEL_WALL || type == TYPE_ENEMY || type == TYPE_PLAYER) {
-            tank->setPos(oldX, oldY);
-            break;
+            if (type == TYPE_ENEMY || type == TYPE_PLAYER) {
+                Tank *other = static_cast<Tank*>(item);
+                if (!other->isAlive()) continue;
+            }
+            return true;
         }
     }
+    return false;
 }
 
 //游戏主循环
 void MainWindow::gameLoop() {
-    qint64 currentTime = QDateTime::currentMSecsSinceEpoch();
-    float deltaTime = (lastTime == 0) ? 0.02f : (currentTime - lastTime) / 1000.0f;
-    lastTime = currentTime;
+    if (paused || !gameRunning) return;
+
+    qint64 nowMs = frameClock.elapsed() - clockOffsetMs;
+    float deltaTime = (lastFrameMs == 0) ? 0.016f : (nowMs - lastFrameMs) / 1000.0f;
+    lastFrameMs = nowMs;
     // 限制最大步长，防止卡顿时瞬移
     if (deltaTime > 0.05f) deltaTime = 0.05f;
-    if (!gameRunning) return;
+
+    // 玩家复活与无敌闪烁
+    if (player && !player->isAlive()) {
+        if (nowMs >= playerRespawnMs) {
+            respawnPlayer();
+        }
+    }
+    if (player && player->isAlive() && nowMs < invincibleUntilMs) {
+        if (nowMs - lastBlinkMs >= 100) {
+            lastBlinkMs = nowMs;
+            player->setOpacity(player->opacity() == 1.0 ? 0.35 : 1.0);
+        }
+    } else if (player && player->isAlive()) {
+        player->setOpacity(1.0);
+    }
+
+    // 波次刷怪
+    if (waveBreakUntilMs > 0) {
+        if (nowMs >= waveBreakUntilMs) {
+            waveBreakUntilMs = 0;
+            startWave(waveNumber + 1);
+        }
+    } else {
+        spawnEnemy(nowMs);
+    }
 
     // 玩家移动
     qreal dx = 0, dy = 0;
@@ -264,21 +507,28 @@ void MainWindow::gameLoop() {
     if (spacePressed) fireBullet(player);
 
     // 敌方移动
+    qreal enemySpeed = ENEMY_SPEED + qMin(6.0 * (waveNumber - 1), 60.0);
     for (EnemyTank *enemy : enemies) {
         if (!enemy->isAlive()) continue;
-        enemy->updateAI(player->pos());
+        enemy->updateAI(player->pos(), nowMs);
         qreal edx = 0, edy = 0;
         switch(enemy->getDirection()) {
-        case Qt::Key_Up:    edy = -ENEMY_SPEED*deltaTime; break;
-        case Qt::Key_Down:  edy =  ENEMY_SPEED*deltaTime; break;
-        case Qt::Key_Left:  edx = -ENEMY_SPEED*deltaTime; break;
-        case Qt::Key_Right: edx =  ENEMY_SPEED*deltaTime; break;
+        case Qt::Key_Up:    edy = -enemySpeed*deltaTime; break;
+        case Qt::Key_Down:  edy =  enemySpeed*deltaTime; break;
+        case Qt::Key_Left:  edx = -enemySpeed*deltaTime; break;
+        case Qt::Key_Right: edx =  enemySpeed*deltaTime; break;
         }
-        moveTank(enemy, edx, edy);
+        if (!moveTank(enemy, edx, edy) && (edx != 0 || edy != 0)) {
+            enemy->onBlocked(nowMs);
+        }
+        if (enemy->shouldFire(nowMs)) {
+            fireBullet(enemy);
+        }
     }
 
     // 子弹移动及碰撞
     for (int i = bullets.size() - 1; i >= 0; --i) {
+        if (!gameRunning) break;
         Bullet *bullet = bullets[i];
         bullet->move(deltaTime);
 
@@ -294,6 +544,8 @@ void MainWindow::gameLoop() {
         bool removed = false;
         for (QGraphicsItem *item : colliding) {
             int type = item->data(0).toInt();
+            if (type == TYPE_BULLET || type == TYPE_EXPLOSION) continue;
+            if (item == static_cast<QGraphicsItem*>(bullet->getOwner())) continue;
             if (type == TYPE_WALL) {
                 Wall *wall = static_cast<Wall*>(item);
                 scene->removeItem(wall);
@@ -311,39 +563,53 @@ void MainWindow::gameLoop() {
                 enemy->setAlive(false);
                 scene->removeItem(enemy);
                 //创建爆炸特效
-                Explosion*exp=new Explosion(enemy->x(),enemy->y());
+                Explosion *exp = new Explosion(enemy->x(), enemy->y());
                 scene->addItem(exp);
                 score += 10;
-                updateUI();
+                enemiesAliveInWave--;
+                playSound(explosionSound);
                 scene->removeItem(bullet);
                 bullets.removeAt(i);
                 delete bullet;
                 removed = true;
-                bool allDead=true;
-                for(EnemyTank*e:enemies){
-                    if(e->isAlive()){
-                        allDead=false;
-                        break;
-                    }
+                if (enemiesToSpawn == 0 && enemiesAliveInWave == 0 && waveBreakUntilMs == 0) {
+                    int bonus = waveNumber * 50;
+                    score += bonus;
+                    QString title;
+                    if (waveNumber >= 15) title = "王牌";
+                    else if (waveNumber >= 10) title = "老兵";
+                    else if (waveNumber >= 5) title = "新兵";
+                    QString bannerText = QString("第 %1 波通过 +%2").arg(waveNumber).arg(bonus);
+                    if (!title.isEmpty()) bannerText += QString("\n称号: %1").arg(title);
+                    showWaveBanner(bannerText, 2000);
+                    playSound(waveSound);
+                    waveBreakUntilMs = nowMs + 2000;
                 }
-                if(allDead)gameOver(true);
+                updateUI();
                 break;
 
             }
             else if (type == TYPE_PLAYER) {
-                if (!player->isAlive()) continue;
-                Explosion*exp=new Explosion(player->x(),player->y());
+                if (!player->isAlive() || player == bullet->getOwner()) continue;
+                if (nowMs < invincibleUntilMs) continue;
+                Explosion *exp = new Explosion(player->x(), player->y());
                 scene->addItem(exp);
                 lives--;
-                updateUI();
+                playSound(explosionSound);
                 scene->removeItem(bullet);
                 bullets.removeAt(i);
                 delete bullet;
                 removed = true;
                 if (lives <= 0) {
                     player->setAlive(false);
-                    gameOver(false);
+                    player->setVisible(false);
+                    gameOver();
+                } else {
+                    player->setAlive(false);
+                    player->setVisible(false);
+                    playerRespawnMs = nowMs + 1500;
                 }
+                updateUI();
                 break;
             }
             else if (type == TYPE_STEEL_WALL) {
@@ -358,20 +624,25 @@ void MainWindow::gameLoop() {
         if (removed) continue;
     }
 
+    cleanupDeadEnemies();
+
+    if (nowMs - lastHudUpdateMs >= 100) {
+        updateUI();
+        lastHudUpdateMs = nowMs;
+    }
     if (shootCooldown > 0) shootCooldown--;
 }
 
 // 游戏结束
-void MainWindow::gameOver(bool win) {
+void MainWindow::gameOver() {
     gameRunning = false;
     gameLoopTimer->stop();
-    for (QTimer *t : enemyAITimers) t->stop();
+    playSound(gameOverSound);
 
-    QString title = win ? "🎉 胜利！" : "💀 游戏结束";
-    QString msg = QString("%1\n最终得分: %2\n按 R 键重新开始")
-                      .arg(win ? "恭喜你消灭了所有敌人！" : "你的坦克被摧毁了！")
+    QString msg = QString("你的坦克被摧毁了！\n坚持到第 %1 波\n最终得分: %2\n按 R 重新开始")
+                      .arg(waveNumber)
                       .arg(score);
-    QMessageBox::information(this, title, msg, QMessageBox::Ok);
+    QMessageBox::information(this, "游戏结束", msg, QMessageBox::Ok);
 }
 
 void MainWindow::resetGame() {
@@ -383,13 +654,21 @@ void MainWindow::resetGame() {
 // 键盘事件
 void MainWindow::keyPressEvent(QKeyEvent *event) {
     switch(event->key()) {
-    case Qt::Key_Up:    keyUp = true; break;
-    case Qt::Key_Down:  keyDown = true; break;
-    case Qt::Key_Left:  keyLeft = true; break;
-    case Qt::Key_Right: keyRight = true; break;
+    case Qt::Key_Up:case Qt::Key_W:    keyUp = true; break;
+    case Qt::Key_Down:case Qt::Key_S: keyDown = true; break;
+    case Qt::Key_Left:case Qt::Key_A:  keyLeft = true; break;
+    case Qt::Key_Right:case Qt::Key_D: keyRight = true; break;
     case Qt::Key_Space: spacePressed = true; break;
+    case Qt::Key_P:
+    case Qt::Key_Escape:
+        togglePause();
+        break;
+    case Qt::Key_M:
+        muted = !muted;
+        statusBar()->showMessage(muted ? "已静音 (M 恢复)" : "音效已开启 (M 静音)");
+        break;
     case Qt::Key_R:
-        if (!gameRunning) resetGame();
+        resetGame();
         break;
     default: QMainWindow::keyPressEvent(event);
     }
@@ -401,12 +680,14 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event) {
     case Qt::Key_Down:  keyDown = false; break;
     case Qt::Key_Left:  keyLeft = false; break;
     case Qt::Key_Right: keyRight = false; break;
+    case Qt::Key_W:     keyUp = false; break;
+    case Qt::Key_S:     keyDown = false; break;
+    case Qt::Key_A:     keyLeft = false; break;
+    case Qt::Key_D:     keyRight = false; break;
     case Qt::Key_Space: spacePressed = false; break;
     default: QMainWindow::keyReleaseEvent(event);
     }
 }
-
-//初始化地图
 void MainWindow::initMap() {
     // 清空之前的地形
     for (QGraphicsItem *item : terrainItems) {
@@ -416,79 +697,34 @@ void MainWindow::initMap() {
     terrainItems.clear();
 
     // 1. 填充地图：0为空地，1=砖墙，2=钢墙
-    // 先将全部置0
+    const char layout[MAP_ROWS][MAP_COLS + 1] = {
+        "22222222222222222222",
+        "2..................2",
+        "2..................2",
+        "2.11....11....11...2",
+        "2.11....11....11...2",
+        "2..................2",
+        "2..................2",
+        "222..............222",
+        "222..............222",
+        "2..................2",
+        "2...11.....11...11.2",
+        "2...11.....11...11.2",
+        "2..................2",
+        "2..................2",
+        "22222222222222222222"
+    };
     for (int r=0; r<MAP_ROWS; ++r)
         for (int c=0; c<MAP_COLS; ++c)
-            mapData[r][c] = 0;
+            mapData[r][c] = layout[r][c] - '0';
 
-    // 2. 绘制边界（最外一圈为钢墙）
-    for (int r=0; r<MAP_ROWS; ++r) {
-        mapData[r][0] = 2;
-        mapData[r][MAP_COLS-1] = 2;
-    }
-    for (int c=0; c<MAP_COLS; ++c) {
-        mapData[0][c] = 2;
-        mapData[MAP_ROWS-1][c] = 2;
-    }
-
-    // 3. 在中间区域放置RXC字母（砖墙），以及一些钢墙掩体
-    int baseCol = 4, baseRow = 3;
-    // R
-    int rShape[7][5] = {
-        {1,1,1,1,1},
-        {1,0,0,0,1},
-        {1,0,0,0,1},
-        {1,1,1,1,1},
-        {1,0,1,0,0},
-        {1,0,0,1,0},
-        {1,0,0,0,1}
-    };
-    for (int i=0;i<7;++i)
-        for (int j=0;j<5;++j)
-            if (rShape[i][j]) mapData[baseRow+i][baseCol+j] = 1;
-
-    // X
-    int xShape[5][5] = {
-        {1,0,0,0,1},
-        {0,1,0,1,0},
-        {0,0,1,0,0},
-        {0,1,0,1,0},
-        {1,0,0,0,1}
-    };
-    int xCol = baseCol + 5 + 1; // gap 30/40≈1
-    for (int i=0;i<5;++i)
-        for (int j=0;j<5;++j)
-            if (xShape[i][j]) mapData[baseRow+1+i][xCol+j] = 1;  // 行偏移1
-
-    // C
-    int cShape[5][5] = {
-        {0,1,1,1,0},
-        {1,0,0,0,0},
-        {1,0,0,0,0},
-        {1,0,0,0,0},
-        {0,1,1,1,0}
-    };
-    int cCol = xCol + 5 + 1;
-    for (int i=0;i<5;++i)
-        for (int j=0;j<5;++j)
-            if (cShape[i][j]) mapData[baseRow+1+i][cCol+j] = 1;
-
-    // 4. 额外添加一些钢墙掩体（例如在左上角、右下角）
-    mapData[2][2] = 2;
-    mapData[2][3] = 2;
-    mapData[3][2] = 2;
-    mapData[MAP_ROWS-3][MAP_COLS-3] = 2;
-    mapData[MAP_ROWS-3][MAP_COLS-2] = 2;
-    mapData[MAP_ROWS-2][MAP_COLS-3] = 2;
-
-    // 5. 根据mapData生成对应的图形项
+    // 根据mapData生成对应的图形项
     int cellSize = SCENE_WIDTH / MAP_COLS;  // 40
     for (int r=0; r<MAP_ROWS; ++r) {
         for (int c=0; c<MAP_COLS; ++c) {
             qreal x = c * cellSize;
             qreal y = r * cellSize;
             int type = mapData[r][c];
-            QGraphicsItem *item = nullptr;
             if (type == 1) {  // 砖墙
                 Wall *wall = new Wall(x, y, cellSize, cellSize);
                 scene->addItem(wall);

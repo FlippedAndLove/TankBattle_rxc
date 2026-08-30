@@ -3,6 +3,7 @@
 
 #include <QGraphicsRectItem>
 #include <QPointF>
+#include <QPainterPath>
 #include "common.h"
 
 class Tank : public QGraphicsRectItem {
@@ -21,6 +22,9 @@ public:
 
     // 自定义绘制
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
+
+    QRectF boundingRect() const override;
+    QPainterPath shape() const override;
 
     // 获取炮口位置
     QPointF getMuzzlePos() const;

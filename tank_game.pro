@@ -1,7 +1,9 @@
-QT       += widgets
+QT       += widgets multimedia
 CONFIG   += c++11
 TARGET   = tank_game
 TEMPLATE = app
+
+RESOURCES += assets.qrc
 
 SOURCES += \
     main.cpp \
