@@ -1,0 +1,3 @@
+D:\Qt\Tools\CMake_64\bin\cmake.exe -E rm -f CMakeFiles\TankBattle_rxc.dir/objects.a
+D:\Qt\Tools\mingw1310_64\bin\ar.exe qc CMakeFiles\TankBattle_rxc.dir/objects.a @CMakeFiles\TankBattle_rxc.dir\objects1.rsp
+D:\Qt\Tools\mingw1310_64\bin\g++.exe -g -mwindows -Wl,--whole-archive CMakeFiles\TankBattle_rxc.dir/objects.a -Wl,--no-whole-archive -o TankBattle_rxc.exe -Wl,--out-implib,libTankBattle_rxc.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\TankBattle_rxc.dir\linkLibs.rsp
