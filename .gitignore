@@ -1,0 +1,13 @@
+# Qt Creator 生成的文件
+*.pro.user*
+*.creator.user*
+
+# 编译产生的临时文件
+*.o
+*.obj
+*.exe
+Makefile*
+*.a
+
+# 构建目录（你项目里的 build- 开头的文件夹）
+build-*/
