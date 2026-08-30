@@ -17,6 +17,7 @@
 
 QT_BEGIN_NAMESPACE
 class QGraphicsTextItem;
+class QGraphicsRectItem;
 QT_END_NAMESPACE
 
 class MainWindow : public QMainWindow {
@@ -33,12 +34,18 @@ private:
     QList<EnemyTank*> enemies;
     QList<Bullet*> bullets;
     QList<QGraphicsItem*> backgroundItems;
+    QList<QGraphicsItem*> decorItems;
 
     // 游戏状态
     int score, lives, shootCooldown;
+    int highScore;
+    int bestWave;
+    int combo;
     bool gameRunning;
     bool paused;
     bool muted;
+    bool ambiencePlaying;
+    bool enginePlaying;
     qint64 pauseStartMs;
     qint64 clockOffsetMs;
 
@@ -64,6 +71,8 @@ private:
     QGraphicsTextItem *enemyDisplay;
     QGraphicsTextItem *waveDisplay;
     QGraphicsTextItem *pauseText;
+    QGraphicsRectItem *gameOverOverlay;
+    QGraphicsTextItem *gameOverText;
 
     // 主循环定时器
     QTimer *gameLoopTimer;
@@ -82,12 +91,22 @@ private:
     QSoundEffect *explosionSound;
     QSoundEffect *waveSound;
     QSoundEffect *gameOverSound;
+    QSoundEffect *playerHitSound;
+    QSoundEffect *milestoneSound;
+    QSoundEffect *respawnSound;
+    QSoundEffect *pauseSound;
+    QSoundEffect *engineSound;
+    QSoundEffect *ambienceSound;
 
     void startWave(int wave);
     void spawnEnemy(qint64 nowMs);
     void respawnPlayer();
     void togglePause();
+    void applyWaveBackground(int wave);
     void showWaveBanner(const QString &text, int durationMs);
+    void showGameOverOverlay(bool newRecord);
+    void showScorePopup(const QPointF &pos, const QString &text);
+    void spawnMuzzleFlash(const QPointF &pos);
     void playSound(QSoundEffect *sound);
     int aliveEnemyCount() const;
     void cleanupDeadEnemies();

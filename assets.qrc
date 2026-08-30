@@ -2,6 +2,12 @@
     <qresource prefix="/sounds">
         <file alias="shoot.wav">assets/sounds/shoot.wav</file>
         <file alias="explosion.wav">assets/sounds/explosion.wav</file>
+        <file alias="playerhit.wav">assets/sounds/playerhit.wav</file>
+        <file alias="milestone.wav">assets/sounds/milestone.wav</file>
+        <file alias="respawn.wav">assets/sounds/respawn.wav</file>
+        <file alias="pause.wav">assets/sounds/pause.wav</file>
+        <file alias="engine.wav">assets/sounds/engine.wav</file>
+        <file alias="ambience.wav">assets/sounds/ambience.wav</file>
         <file alias="wave.wav">assets/sounds/wave.wav</file>
         <file alias="gameover.wav">assets/sounds/gameover.wav</file>
     </qresource>

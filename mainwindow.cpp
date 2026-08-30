@@ -4,6 +4,7 @@
 #include <QKeyEvent>
 #include <QRandomGenerator>
 #include <QFontMetrics>
+#include <QSettings>
 #include <QGraphicsEllipseItem>
 #include <QGraphicsRectItem>
 #include <QGraphicsTextItem>
@@ -15,13 +16,18 @@
 #include"explosion.h"
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), player(nullptr), paused(false), muted(false), pauseStartMs(0), clockOffsetMs(0),
+    : QMainWindow(parent), player(nullptr), highScore(0), bestWave(0), combo(0),
+      paused(false), muted(false), ambiencePlaying(false), enginePlaying(false),
+      pauseStartMs(0), clockOffsetMs(0),
       waveNumber(0), enemiesToSpawn(0), enemiesAliveInWave(0),
       nextEnemySpawnMs(0), waveBreakUntilMs(0), playerRespawnMs(0),
       invincibleUntilMs(0), lastBlinkMs(0), idText(nullptr), scoreDisplay(nullptr),
       livesDisplay(nullptr), enemyDisplay(nullptr), waveDisplay(nullptr), pauseText(nullptr),
+      gameOverOverlay(nullptr), gameOverText(nullptr),
       gameLoopTimer(nullptr), lastFrameMs(0), lastHudUpdateMs(0),
-      shootSound(nullptr), explosionSound(nullptr), waveSound(nullptr), gameOverSound(nullptr) {
+      shootSound(nullptr), explosionSound(nullptr), waveSound(nullptr), gameOverSound(nullptr),
+      playerHitSound(nullptr), milestoneSound(nullptr), respawnSound(nullptr), pauseSound(nullptr),
+      engineSound(nullptr), ambienceSound(nullptr) {
     setWindowTitle("坦克大战 - RXC");
     resize(SCENE_WIDTH + 20, SCENE_HEIGHT + 80);
 
@@ -50,6 +56,26 @@ MainWindow::MainWindow(QWidget *parent)
     gameOverSound = new QSoundEffect(this);
     gameOverSound->setSource(QUrl("qrc:/sounds/gameover.wav"));
     gameOverSound->setVolume(0.7);
+    playerHitSound = new QSoundEffect(this);
+    playerHitSound->setSource(QUrl("qrc:/sounds/playerhit.wav"));
+    playerHitSound->setVolume(0.7);
+    milestoneSound = new QSoundEffect(this);
+    milestoneSound->setSource(QUrl("qrc:/sounds/milestone.wav"));
+    milestoneSound->setVolume(0.7);
+    respawnSound = new QSoundEffect(this);
+    respawnSound->setSource(QUrl("qrc:/sounds/respawn.wav"));
+    respawnSound->setVolume(0.5);
+    pauseSound = new QSoundEffect(this);
+    pauseSound->setSource(QUrl("qrc:/sounds/pause.wav"));
+    pauseSound->setVolume(0.4);
+    engineSound = new QSoundEffect(this);
+    engineSound->setSource(QUrl("qrc:/sounds/engine.wav"));
+    engineSound->setVolume(0.16);
+    engineSound->setLoopCount(QSoundEffect::Infinite);
+    ambienceSound = new QSoundEffect(this);
+    ambienceSound->setSource(QUrl("qrc:/sounds/ambience.wav"));
+    ambienceSound->setVolume(0.12);
+    ambienceSound->setLoopCount(QSoundEffect::Infinite);
 
     initGame();
     statusBar()->showMessage("方向键/WASD移动，空格射击；P暂停，M静音，R重开");
@@ -67,6 +93,9 @@ void MainWindow::initGame() {
     lives = INIT_LIVES;
     shootCooldown = 0;
     gameRunning = true;
+    combo = 0;
+    ambiencePlaying = false;
+    enginePlaying = false;
     paused = false;
     clockOffsetMs = 0;
     waveNumber = 0;
@@ -82,6 +111,9 @@ void MainWindow::initGame() {
     frameClock.start();
     lastFrameMs = 0;
     lastHudUpdateMs = 0;
+    QSettings settings("RXC", "TankBattle");
+    highScore = settings.value("highScore", 0).toInt();
+    bestWave = settings.value("bestWave", 0).toInt();
 
     initBackground();
     initMap();
@@ -91,6 +123,10 @@ void MainWindow::initGame() {
 
     startWave(1);
     updateUI();
+    if (!muted && !ambiencePlaying) {
+        ambienceSound->play();
+        ambiencePlaying = true;
+    }
 
     gameLoopTimer = new QTimer(this);
     connect(gameLoopTimer, &QTimer::timeout, this, &MainWindow::gameLoop);
@@ -115,6 +151,10 @@ void MainWindow::clearGame() {
         gameLoopTimer->stop();
         delete gameLoopTimer;
         gameLoopTimer = nullptr;   // 避免野指针
+    }
+    if (engineSound && enginePlaying) {
+        engineSound->stop();
+        enginePlaying = false;
     }
 
     // 2. 从场景移除并删除所有砖墙
@@ -157,6 +197,11 @@ void MainWindow::clearGame() {
         delete item;
     }
     backgroundItems.clear();
+    for (QGraphicsItem *item : decorItems) {
+        scene->removeItem(item);
+        delete item;
+    }
+    decorItems.clear();
     scoreDisplay = nullptr;
     livesDisplay = nullptr;
     enemyDisplay = nullptr;
@@ -167,54 +212,21 @@ void MainWindow::clearGame() {
         delete pauseText;
         pauseText = nullptr;
     }
+    if (gameOverOverlay) {
+        scene->removeItem(gameOverOverlay);
+        delete gameOverOverlay;
+        gameOverOverlay = nullptr;
+    }
+    if (gameOverText) {
+        scene->removeItem(gameOverText);
+        delete gameOverText;
+        gameOverText = nullptr;
+    }
 }
 
 // 背景（经典战场）
 void MainWindow::initBackground() {
     scene->setBackgroundBrush(QBrush(QColor(86, 74, 56))); // 泥地
-
-    auto addBackground = [this](QGraphicsItem *item) {
-        scene->addItem(item);
-        backgroundItems.append(item);
-    };
-
-    // 弹坑
-    QGraphicsEllipseItem *crater1 = new QGraphicsEllipseItem(70, 110, 56, 40);
-    crater1->setPen(QPen(Qt::NoPen));
-    crater1->setBrush(QColor(48, 42, 32));
-    crater1->setZValue(-1);
-    addBackground(crater1);
-
-    QGraphicsEllipseItem *crater2 = new QGraphicsEllipseItem(640, 380, 70, 46);
-    crater2->setPen(QPen(Qt::NoPen));
-    crater2->setBrush(QColor(48, 42, 32));
-    crater2->setZValue(-1);
-    addBackground(crater2);
-
-    QGraphicsEllipseItem *crater3 = new QGraphicsEllipseItem(350, 80, 46, 34);
-    crater3->setPen(QPen(Qt::NoPen));
-    crater3->setBrush(QColor(52, 46, 36));
-    crater3->setZValue(-1);
-    addBackground(crater3);
-
-    QGraphicsEllipseItem *crater4 = new QGraphicsEllipseItem(720, 260, 52, 38);
-    crater4->setPen(QPen(Qt::NoPen));
-    crater4->setBrush(QColor(48, 42, 32));
-    crater4->setZValue(-1);
-    addBackground(crater4);
-
-    // 车辙
-    QGraphicsRectItem *track1 = new QGraphicsRectItem(90, 520, 190, 8);
-    track1->setPen(QPen(Qt::NoPen));
-    track1->setBrush(QColor(50, 44, 34));
-    track1->setZValue(-1);
-    addBackground(track1);
-
-    QGraphicsRectItem *track2 = new QGraphicsRectItem(540, 540, 170, 8);
-    track2->setPen(QPen(Qt::NoPen));
-    track2->setBrush(QColor(50, 44, 34));
-    track2->setZValue(-1);
-    addBackground(track2);
 
     // RXC 背景水印（不参与碰撞）
     QGraphicsTextItem *bgText = scene->addText("RXC");
@@ -272,9 +284,99 @@ void MainWindow::startWave(int wave) {
     waveBreakUntilMs = 0;
     qint64 nowMs = frameClock.elapsed() - clockOffsetMs;
     nextEnemySpawnMs = nowMs + 600;
-    showWaveBanner(QString("第 %1 波").arg(waveNumber), 1600);
-    playSound(waveSound);
+    applyWaveBackground(waveNumber);
+    QString title;
+    if (waveNumber >= 15) title = "王牌";
+    else if (waveNumber >= 10) title = "老兵";
+    else if (waveNumber >= 5) title = "新兵";
+    QString bannerText = QString("第 %1 波").arg(waveNumber);
+    if (!title.isEmpty()) bannerText += QString(" · %1").arg(title);
+    showWaveBanner(bannerText, 1600);
+    if (waveNumber % 5 == 0) {
+        playSound(milestoneSound);
+    } else {
+        playSound(waveSound);
+    }
     updateUI();
+}
+
+void MainWindow::applyWaveBackground(int wave) {
+    for (QGraphicsItem *item : decorItems) {
+        scene->removeItem(item);
+        delete item;
+    }
+    decorItems.clear();
+
+    int theme = (wave - 1) % 4;
+    QColor ground, crater, track;
+    bool night = false;
+    switch (theme) {
+    case 0:
+        ground = QColor(108, 82, 52);
+        crater = QColor(62, 48, 34);
+        track = QColor(56, 44, 32);
+        break;
+    case 1:
+        ground = QColor(34, 40, 56);
+        crater = QColor(16, 20, 32);
+        track = QColor(22, 26, 38);
+        night = true;
+        break;
+    case 2:
+        ground = QColor(96, 104, 72);
+        crater = QColor(50, 56, 40);
+        track = QColor(46, 52, 38);
+        break;
+    default:
+        ground = QColor(88, 52, 46);
+        crater = QColor(46, 28, 26);
+        track = QColor(42, 28, 24);
+        break;
+    }
+    scene->setBackgroundBrush(QBrush(ground));
+
+    struct Crater { qreal x, y, w, h; };
+    const Crater craters[4] = {
+        {70, 110, 56, 40}, {640, 380, 70, 46},
+        {350, 80, 46, 34}, {720, 260, 52, 38}
+    };
+    for (const Crater &c : craters) {
+        QGraphicsEllipseItem *e = new QGraphicsEllipseItem(c.x, c.y, c.w, c.h);
+        e->setPen(QPen(Qt::NoPen));
+        e->setBrush(crater);
+        e->setZValue(-1);
+        scene->addItem(e);
+        decorItems.append(e);
+    }
+
+    QGraphicsRectItem *t1 = new QGraphicsRectItem(90, 520, 190, 8);
+    t1->setPen(QPen(Qt::NoPen));
+    t1->setBrush(track);
+    t1->setZValue(-1);
+    scene->addItem(t1);
+    decorItems.append(t1);
+
+    QGraphicsRectItem *t2 = new QGraphicsRectItem(540, 540, 170, 8);
+    t2->setPen(QPen(Qt::NoPen));
+    t2->setBrush(track);
+    t2->setZValue(-1);
+    scene->addItem(t2);
+    decorItems.append(t2);
+
+    if (night) {
+        const QPointF stars[6] = {
+            QPointF(120, 70), QPointF(300, 120), QPointF(520, 60),
+            QPointF(700, 120), QPointF(220, 240), QPointF(620, 220)
+        };
+        for (const QPointF &s : stars) {
+            QGraphicsEllipseItem *star = new QGraphicsEllipseItem(s.x(), s.y(), 3, 3);
+            star->setPen(QPen(Qt::NoPen));
+            star->setBrush(QColor(255, 255, 230, 140));
+            star->setZValue(-1);
+            scene->addItem(star);
+            decorItems.append(star);
+        }
+    }
 }
 
 void MainWindow::spawnEnemy(qint64 nowMs) {
@@ -316,11 +418,13 @@ void MainWindow::respawnPlayer() {
     qint64 nowMs = frameClock.elapsed() - clockOffsetMs;
     invincibleUntilMs = nowMs + 2000;
     lastBlinkMs = 0;
+    playSound(respawnSound);
 }
 
 void MainWindow::togglePause() {
     if (!gameRunning) return;
     if (paused) {
+        playSound(pauseSound);
         clockOffsetMs += frameClock.elapsed() - pauseStartMs;
         paused = false;
         if (pauseText) {
@@ -328,8 +432,21 @@ void MainWindow::togglePause() {
             delete pauseText;
             pauseText = nullptr;
         }
+        if (!muted && !ambiencePlaying) {
+            ambienceSound->play();
+            ambiencePlaying = true;
+        }
         statusBar()->showMessage("已继续 (P/Esc 暂停, M 静音)");
     } else {
+        playSound(pauseSound);
+        if (enginePlaying) {
+            engineSound->stop();
+            enginePlaying = false;
+        }
+        if (ambiencePlaying) {
+            ambienceSound->stop();
+            ambiencePlaying = false;
+        }
         pauseStartMs = frameClock.elapsed();
         paused = true;
         pauseText = scene->addText("已暂停 - 按 P 继续");
@@ -351,6 +468,70 @@ void MainWindow::showWaveBanner(const QString &text, int durationMs) {
     qreal w = fm.horizontalAdvance(text);
     banner->setPos(qMax(0.0, (SCENE_WIDTH - w) / 2), SCENE_HEIGHT / 2 - 40);
     QTimer::singleShot(durationMs, [banner]() { banner->deleteLater(); });
+}
+
+void MainWindow::showGameOverOverlay(bool newRecord) {
+    if (gameOverOverlay) return;
+
+    gameOverOverlay = new QGraphicsRectItem(0, 0, SCENE_WIDTH, SCENE_HEIGHT);
+    gameOverOverlay->setPen(QPen(Qt::NoPen));
+    gameOverOverlay->setBrush(QColor(0, 0, 0, 175));
+    gameOverOverlay->setZValue(40);
+    scene->addItem(gameOverOverlay);
+
+    QString encouragement;
+    if (newRecord) {
+        encouragement = "新纪录！你已经是 RXC 王牌！";
+    } else if (score >= 1000) {
+        encouragement = "顶级表现！敌人看到你都要绕路。";
+    } else if (score >= 500) {
+        encouragement = "优秀！距离传说只差一点。";
+    } else if (score >= 200) {
+        encouragement = "不错的战绩，继续推进波次！";
+    } else {
+        encouragement = "稳住节奏，下一局一定能走得更远！";
+    }
+
+    QString text = QString("游戏结束\n得分: %1\n坚持到第 %2 波\n最高得分: %3\n最佳波次: %4\n\n%5\n\n按 R 重新开始")
+                       .arg(score)
+                       .arg(waveNumber)
+                       .arg(highScore)
+                       .arg(bestWave)
+                       .arg(encouragement);
+    gameOverText = scene->addText(text);
+    QFont f("Arial", 20, QFont::Bold);
+    gameOverText->setFont(f);
+    gameOverText->setDefaultTextColor(QColor(255, 240, 180));
+    gameOverText->setZValue(41);
+    gameOverText->setPos(SCENE_WIDTH / 2 - 240, SCENE_HEIGHT / 2 - 130);
+}
+
+void MainWindow::showScorePopup(const QPointF &pos, const QString &text) {
+    QGraphicsTextItem *pop = scene->addText(text);
+    pop->setFont(QFont("Arial", 14, QFont::Bold));
+    pop->setDefaultTextColor(QColor(255, 220, 80));
+    pop->setPos(pos.x() + 12, pos.y() - 12);
+    pop->setZValue(15);
+    QTimer *timer = new QTimer(this);
+    connect(timer, &QTimer::timeout, [pop, timer]() {
+        pop->setPos(pop->x(), pop->y() - 1.2);
+        pop->setOpacity(pop->opacity() - 0.1);
+        if (pop->opacity() <= 0.0) {
+            timer->stop();
+            pop->deleteLater();
+            timer->deleteLater();
+        }
+    });
+    timer->start(40);
+}
+
+void MainWindow::spawnMuzzleFlash(const QPointF &pos) {
+    QGraphicsEllipseItem *flash = new QGraphicsEllipseItem(pos.x() - 5, pos.y() - 5, 12, 12);
+    flash->setPen(QPen(Qt::NoPen));
+    flash->setBrush(QColor(255, 230, 90, 210));
+    flash->setZValue(4);
+    scene->addItem(flash);
+    QTimer::singleShot(70, [flash]() { delete flash; });
 }
 
 void MainWindow::playSound(QSoundEffect *sound) {
@@ -381,11 +562,15 @@ void MainWindow::cleanupDeadEnemies() {
 }
 // UI更新
 void MainWindow::updateUI() {
-    QString msg = QString("得分: %1  生命: %2  波次: %3").arg(score).arg(lives).arg(waveNumber);
+    QString msg = QString("得分: %1  生命: %2  波次: %3  最高: %4")
+                      .arg(score).arg(lives).arg(waveNumber).arg(highScore);
 
     // 计算存活敌人数量
     int aliveCount = aliveEnemyCount();
     msg += QString("  敌人: %1").arg(aliveCount);
+    if (combo >= 2) {
+        msg += QString("  连击 x%1").arg(qMin(combo, 5));
+    }
 
     statusBar()->showMessage(msg);
 
@@ -396,7 +581,11 @@ void MainWindow::updateUI() {
         livesDisplay->setPlainText(QString("生命: %1").arg(lives));
     }
     if (enemyDisplay) {
-        enemyDisplay->setPlainText(QString("敌人: %1").arg(aliveCount));
+        QString enemyText = QString("敌人: %1").arg(aliveCount);
+        if (combo >= 2) {
+            enemyText += QString("  x%1").arg(qMin(combo, 5));
+        }
+        enemyDisplay->setPlainText(enemyText);
     }
     if (waveDisplay) {
         waveDisplay->setPlainText(QString("波次: %1").arg(waveNumber));
@@ -415,6 +604,7 @@ void MainWindow::fireBullet(Tank *tank) {
     Bullet *bullet = new Bullet(tank, tank->getDirection(), muzzle.x(), muzzle.y());
     scene->addItem(bullet);
     bullets.append(bullet);
+    spawnMuzzleFlash(muzzle);
     playSound(shootSound);
 }
 
@@ -506,6 +696,15 @@ void MainWindow::gameLoop() {
     if (dx || dy) moveTank(player, dx, dy);
     if (spacePressed) fireBullet(player);
 
+    bool playerMoving = player->isAlive() && (keyUp || keyDown || keyLeft || keyRight);
+    if (playerMoving && !muted && !enginePlaying) {
+        engineSound->play();
+        enginePlaying = true;
+    } else if (!playerMoving && enginePlaying) {
+        engineSound->stop();
+        enginePlaying = false;
+    }
+
     // 敌方移动
     qreal enemySpeed = ENEMY_SPEED + qMin(6.0 * (waveNumber - 1), 60.0);
     for (EnemyTank *enemy : enemies) {
@@ -565,7 +764,11 @@ void MainWindow::gameLoop() {
                 //创建爆炸特效
                 Explosion *exp = new Explosion(enemy->x(), enemy->y());
                 scene->addItem(exp);
-                score += 10;
+                combo++;
+                int multiplier = qMin(combo, 5);
+                int gain = 10 * multiplier;
+                score += gain;
+                showScorePopup(enemy->pos(), QString("+%1 x%2").arg(gain).arg(multiplier));
                 enemiesAliveInWave--;
                 playSound(explosionSound);
                 scene->removeItem(bullet);
@@ -575,6 +778,8 @@ void MainWindow::gameLoop() {
                 if (enemiesToSpawn == 0 && enemiesAliveInWave == 0 && waveBreakUntilMs == 0) {
                     int bonus = waveNumber * 50;
                     score += bonus;
+                    showScorePopup(QPointF(SCENE_WIDTH / 2, SCENE_HEIGHT / 2 - 20),
+                                   QString("波次奖励 +%1").arg(bonus));
                     QString title;
                     if (waveNumber >= 15) title = "王牌";
                     else if (waveNumber >= 10) title = "老兵";
@@ -595,6 +800,8 @@ void MainWindow::gameLoop() {
                 Explosion *exp = new Explosion(player->x(), player->y());
                 scene->addItem(exp);
                 lives--;
+                combo = 0;
+                showScorePopup(player->pos(), "连击中断");
                 playSound(explosionSound);
                 scene->removeItem(bullet);
                 bullets.removeAt(i);
@@ -637,12 +844,25 @@ void MainWindow::gameLoop() {
 void MainWindow::gameOver() {
     gameRunning = false;
     gameLoopTimer->stop();
-    playSound(gameOverSound);
+    if (enginePlaying) {
+        engineSound->stop();
+        enginePlaying = false;
+    }
+    if (ambiencePlaying) {
+        ambienceSound->stop();
+        ambiencePlaying = false;
+    }
 
-    QString msg = QString("你的坦克被摧毁了！\n坚持到第 %1 波\n最终得分: %2\n按 R 重新开始")
-                      .arg(waveNumber)
-                      .arg(score);
-    QMessageBox::information(this, "游戏结束", msg, QMessageBox::Ok);
+    bool newRecord = score > highScore;
+    if (newRecord) highScore = score;
+    if (waveNumber > bestWave) bestWave = waveNumber;
+    QSettings settings("RXC", "TankBattle");
+    settings.setValue("highScore", highScore);
+    settings.setValue("bestWave", bestWave);
+
+    playSound(gameOverSound);
+    showGameOverOverlay(newRecord);
+    updateUI();
 }
 
 void MainWindow::resetGame() {
@@ -665,7 +885,23 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
         break;
     case Qt::Key_M:
         muted = !muted;
-        statusBar()->showMessage(muted ? "已静音 (M 恢复)" : "音效已开启 (M 静音)");
+        if (muted) {
+            if (enginePlaying) {
+                engineSound->stop();
+                enginePlaying = false;
+            }
+            if (ambiencePlaying) {
+                ambienceSound->stop();
+                ambiencePlaying = false;
+            }
+            statusBar()->showMessage("已静音 (M 恢复)");
+        } else {
+            if (!ambiencePlaying) {
+                ambienceSound->play();
+                ambiencePlaying = true;
+            }
+            statusBar()->showMessage("音效已开启 (M 静音)");
+        }
         break;
     case Qt::Key_R:
         resetGame();
