@@ -10,8 +10,12 @@
 #include <QBrush>
 #include <QPen>
 #include <QColor>
+#include<QDateTime>
+#include <QDebug>
+#include"steelwall.h"
+#include"explosion.h"
 
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),player(nullptr),gameLoopTimer(nullptr) {
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),player(nullptr),gameLoopTimer(nullptr),lastTime(0),scoreDisplay(nullptr) {
     setWindowTitle("坦克大战 - RXC");
     resize(SCENE_WIDTH + 20, SCENE_HEIGHT + 80);
 
@@ -45,7 +49,7 @@ void MainWindow::initGame() {
     spacePressed = false;
 
     initBackground();
-    initRXCWalls();
+    initMap();
 
     player = new PlayerTank(60, SCENE_HEIGHT - TANK_SIZE - 60);
     scene->addItem(player);
@@ -56,6 +60,9 @@ void MainWindow::initGame() {
     gameLoopTimer = new QTimer(this);
     connect(gameLoopTimer, &QTimer::timeout, this, &MainWindow::gameLoop);
     gameLoopTimer->start(20);
+    //调试输出
+    qDebug()<<"砖墙数量："<<walls.size();
+    qDebug()<<"敌方坦克数量："<<enemies.size();
 }
 
 void MainWindow::clearGame() {
@@ -102,6 +109,12 @@ void MainWindow::clearGame() {
         delete player;
         player = nullptr;
     }
+    // 清理钢墙
+    for (QGraphicsItem *item : terrainItems) {
+        scene->removeItem(item);
+        delete item;
+    }
+    terrainItems.clear();
 }
 
 //背景（校园风格）
@@ -157,56 +170,13 @@ void MainWindow::initBackground() {
     idText->setFont(font);
     idText->setDefaultTextColor(QColor(255, 255, 0));
     idText->setZValue(10);
+    //得分和生命值的视觉展示
+    QGraphicsTextItem *scoreDisplay = scene->addText("得分: 0");
+    scoreDisplay->setPos(20, 20);
+    scoreDisplay->setDefaultTextColor(Qt::white);
+    scoreDisplay->setZValue(10);
 }
 
-// RXC 砖墙
-void MainWindow::initRXCWalls() {
-    int startX = 180, startY = 120, gap = 30;
-
-    // R
-    bool rShape[7][5] = {
-        {1,1,1,1,1},
-        {1,0,0,0,1},
-        {1,0,0,0,1},
-        {1,1,1,1,1},
-        {1,0,1,0,0},
-        {1,0,0,1,0},
-        {1,0,0,0,1}
-    };
-    createLetter(rShape, 7, 5, startX, startY);
-
-    // X
-    bool xShape[5][5] = {
-        {1,0,0,0,1},
-        {0,1,0,1,0},
-        {0,0,1,0,0},
-        {0,1,0,1,0},
-        {1,0,0,0,1}
-    };
-    createLetter(xShape, 5, 5, startX + 5*WALL_SIZE + gap, startY + WALL_SIZE);
-
-    // C
-    bool cShape[5][5] = {
-        {0,1,1,1,0},
-        {1,0,0,0,0},
-        {1,0,0,0,0},
-        {1,0,0,0,0},
-        {0,1,1,1,0}
-    };
-    createLetter(cShape, 5, 5, startX + 2*(5*WALL_SIZE + gap), startY + WALL_SIZE);
-}
-
-void MainWindow::createLetter(bool shape[][5], int rows, int cols, int offsetX, int offsetY) {
-    for (int r = 0; r < rows; ++r) {
-        for (int c = 0; c < cols; ++c) {
-            if (shape[r][c]) {
-                Wall *wall = new Wall(offsetX + c*WALL_SIZE, offsetY + r*WALL_SIZE);
-                scene->addItem(wall);
-                walls.append(wall);
-            }
-        }
-    }
-}
 
 // 敌方坦克
 void MainWindow::initEnemies() {
@@ -235,6 +205,9 @@ void MainWindow::initEnemies() {
 //UI更新
 void MainWindow::updateUI() {
     statusBar()->showMessage(QString("得分: %1  生命: %2").arg(score).arg(lives));
+    if(scoreDisplay){
+        scoreDisplay->setPlainText(QString("得分：%1").arg(score));
+    }
 }
 
 // 开火
@@ -251,7 +224,7 @@ void MainWindow::fireBullet(Tank *tank) {
 }
 
 // 移动坦克（含碰撞）
-void MainWindow::moveTank(Tank *tank, int dx, int dy) {
+void MainWindow::moveTank(Tank *tank, qreal dx, qreal dy) {
     if (!tank->isAlive()) return;
     qreal oldX = tank->x(), oldY = tank->y();
     tank->setPos(oldX + dx, oldY + dy);
@@ -265,7 +238,7 @@ void MainWindow::moveTank(Tank *tank, int dx, int dy) {
     QList<QGraphicsItem*> colliding = tank->collidingItems();
     for (QGraphicsItem *item : colliding) {
         int type = item->data(0).toInt();
-        if (type == TYPE_WALL || type == TYPE_ENEMY || type == TYPE_PLAYER) {
+        if (type == TYPE_WALL || type == TYPE_STEEL_WALL || type == TYPE_ENEMY || type == TYPE_PLAYER) {
             tank->setPos(oldX, oldY);
             break;
         }
@@ -274,26 +247,32 @@ void MainWindow::moveTank(Tank *tank, int dx, int dy) {
 
 //游戏主循环
 void MainWindow::gameLoop() {
+    qint64 currentTime = QDateTime::currentMSecsSinceEpoch();
+    float deltaTime = (lastTime == 0) ? 0.02f : (currentTime - lastTime) / 1000.0f;
+    lastTime = currentTime;
+    // 限制最大步长，防止卡顿时瞬移
+    if (deltaTime > 0.05f) deltaTime = 0.05f;
     if (!gameRunning) return;
 
     // 玩家移动
-    int dx = 0, dy = 0;
-    if (keyUp)    { dy = -PLAYER_SPEED; player->setDirection(Qt::Key_Up); }
-    else if (keyDown)  { dy =  PLAYER_SPEED; player->setDirection(Qt::Key_Down); }
-    else if (keyLeft)  { dx = -PLAYER_SPEED; player->setDirection(Qt::Key_Left); }
-    else if (keyRight) { dx =  PLAYER_SPEED; player->setDirection(Qt::Key_Right); }
+    qreal dx = 0, dy = 0;
+    if (keyUp)    { dy = -PLAYER_SPEED*deltaTime; player->setDirection(Qt::Key_Up); }
+    else if (keyDown)  { dy =  PLAYER_SPEED*deltaTime; player->setDirection(Qt::Key_Down); }
+    else if (keyLeft)  { dx = -PLAYER_SPEED*deltaTime; player->setDirection(Qt::Key_Left); }
+    else if (keyRight) { dx =  PLAYER_SPEED*deltaTime; player->setDirection(Qt::Key_Right); }
     if (dx || dy) moveTank(player, dx, dy);
     if (spacePressed) fireBullet(player);
 
     // 敌方移动
     for (EnemyTank *enemy : enemies) {
         if (!enemy->isAlive()) continue;
-        int edx = 0, edy = 0;
+        enemy->updateAI(player->pos());
+        qreal edx = 0, edy = 0;
         switch(enemy->getDirection()) {
-        case Qt::Key_Up:    edy = -ENEMY_SPEED; break;
-        case Qt::Key_Down:  edy =  ENEMY_SPEED; break;
-        case Qt::Key_Left:  edx = -ENEMY_SPEED; break;
-        case Qt::Key_Right: edx =  ENEMY_SPEED; break;
+        case Qt::Key_Up:    edy = -ENEMY_SPEED*deltaTime; break;
+        case Qt::Key_Down:  edy =  ENEMY_SPEED*deltaTime; break;
+        case Qt::Key_Left:  edx = -ENEMY_SPEED*deltaTime; break;
+        case Qt::Key_Right: edx =  ENEMY_SPEED*deltaTime; break;
         }
         moveTank(enemy, edx, edy);
     }
@@ -301,7 +280,7 @@ void MainWindow::gameLoop() {
     // 子弹移动及碰撞
     for (int i = bullets.size() - 1; i >= 0; --i) {
         Bullet *bullet = bullets[i];
-        bullet->move();
+        bullet->move(deltaTime);
 
         if (bullet->x() < 0 || bullet->x() > SCENE_WIDTH ||
             bullet->y() < 0 || bullet->y() > SCENE_HEIGHT) {
@@ -331,6 +310,9 @@ void MainWindow::gameLoop() {
                 if (!enemy->isAlive()) continue;
                 enemy->setAlive(false);
                 scene->removeItem(enemy);
+                //创建爆炸特效
+                Explosion*exp=new Explosion(enemy->x(),enemy->y());
+                scene->addItem(exp);
                 score += 10;
                 updateUI();
                 scene->removeItem(bullet);
@@ -346,9 +328,12 @@ void MainWindow::gameLoop() {
                 }
                 if(allDead)gameOver(true);
                 break;
+
             }
             else if (type == TYPE_PLAYER) {
                 if (!player->isAlive()) continue;
+                Explosion*exp=new Explosion(player->x(),player->y());
+                scene->addItem(exp);
                 lives--;
                 updateUI();
                 scene->removeItem(bullet);
@@ -359,6 +344,14 @@ void MainWindow::gameLoop() {
                     player->setAlive(false);
                     gameOver(false);
                 }
+                break;
+            }
+            else if (type == TYPE_STEEL_WALL) {
+                // 钢墙不可摧毁，但子弹应消失
+                scene->removeItem(bullet);
+                bullets.removeAt(i);
+                delete bullet;
+                removed = true;
                 break;
             }
         }
@@ -410,5 +403,101 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event) {
     case Qt::Key_Right: keyRight = false; break;
     case Qt::Key_Space: spacePressed = false; break;
     default: QMainWindow::keyReleaseEvent(event);
+    }
+}
+
+//初始化地图
+void MainWindow::initMap() {
+    // 清空之前的地形
+    for (QGraphicsItem *item : terrainItems) {
+        scene->removeItem(item);
+        delete item;
+    }
+    terrainItems.clear();
+
+    // 1. 填充地图：0为空地，1=砖墙，2=钢墙
+    // 先将全部置0
+    for (int r=0; r<MAP_ROWS; ++r)
+        for (int c=0; c<MAP_COLS; ++c)
+            mapData[r][c] = 0;
+
+    // 2. 绘制边界（最外一圈为钢墙）
+    for (int r=0; r<MAP_ROWS; ++r) {
+        mapData[r][0] = 2;
+        mapData[r][MAP_COLS-1] = 2;
+    }
+    for (int c=0; c<MAP_COLS; ++c) {
+        mapData[0][c] = 2;
+        mapData[MAP_ROWS-1][c] = 2;
+    }
+
+    // 3. 在中间区域放置RXC字母（砖墙），以及一些钢墙掩体
+    int baseCol = 4, baseRow = 3;
+    // R
+    int rShape[7][5] = {
+        {1,1,1,1,1},
+        {1,0,0,0,1},
+        {1,0,0,0,1},
+        {1,1,1,1,1},
+        {1,0,1,0,0},
+        {1,0,0,1,0},
+        {1,0,0,0,1}
+    };
+    for (int i=0;i<7;++i)
+        for (int j=0;j<5;++j)
+            if (rShape[i][j]) mapData[baseRow+i][baseCol+j] = 1;
+
+    // X
+    int xShape[5][5] = {
+        {1,0,0,0,1},
+        {0,1,0,1,0},
+        {0,0,1,0,0},
+        {0,1,0,1,0},
+        {1,0,0,0,1}
+    };
+    int xCol = baseCol + 5 + 1; // gap 30/40≈1
+    for (int i=0;i<5;++i)
+        for (int j=0;j<5;++j)
+            if (xShape[i][j]) mapData[baseRow+1+i][xCol+j] = 1;  // 行偏移1
+
+    // C
+    int cShape[5][5] = {
+        {0,1,1,1,0},
+        {1,0,0,0,0},
+        {1,0,0,0,0},
+        {1,0,0,0,0},
+        {0,1,1,1,0}
+    };
+    int cCol = xCol + 5 + 1;
+    for (int i=0;i<5;++i)
+        for (int j=0;j<5;++j)
+            if (cShape[i][j]) mapData[baseRow+1+i][cCol+j] = 1;
+
+    // 4. 额外添加一些钢墙掩体（例如在左上角、右下角）
+    mapData[2][2] = 2;
+    mapData[2][3] = 2;
+    mapData[3][2] = 2;
+    mapData[MAP_ROWS-3][MAP_COLS-3] = 2;
+    mapData[MAP_ROWS-3][MAP_COLS-2] = 2;
+    mapData[MAP_ROWS-2][MAP_COLS-3] = 2;
+
+    // 5. 根据mapData生成对应的图形项
+    int cellSize = SCENE_WIDTH / MAP_COLS;  // 40
+    for (int r=0; r<MAP_ROWS; ++r) {
+        for (int c=0; c<MAP_COLS; ++c) {
+            qreal x = c * cellSize;
+            qreal y = r * cellSize;
+            int type = mapData[r][c];
+            QGraphicsItem *item = nullptr;
+            if (type == 1) {  // 砖墙
+                Wall *wall = new Wall(x, y, cellSize, cellSize);
+                scene->addItem(wall);
+                walls.append(wall);  // 仍加入walls列表，便于被子弹摧毁
+            } else if (type == 2) {  // 钢墙
+                SteelWall *steel = new SteelWall(x, y, cellSize, cellSize);
+                scene->addItem(steel);
+                terrainItems.append(steel);
+            }
+        }
     }
 }

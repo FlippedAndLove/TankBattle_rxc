@@ -1,11 +1,11 @@
 CMakeFiles/TankBattle_rxc.dir/TankBattle_rxc_autogen/mocs_compilation.cpp.obj: \
  D:\TankBattle\TankBattle_rxc\build\Desktop_Qt_6_8_3_MinGW_64_bit-Debug\TankBattle_rxc_autogen\mocs_compilation.cpp \
- D:\TankBattle\TankBattle_rxc\build\Desktop_Qt_6_8_3_MinGW_64_bit-Debug\TankBattle_rxc_autogen\EWIEGA46WW/moc_mainwindow.cpp \
- D:/TankBattle/TankBattle_rxc/mainwindow.h \
- D:/Qt/6.8.3/mingw_64/include/QtWidgets/QMainWindow \
- D:/Qt/6.8.3/mingw_64/include/QtWidgets/qmainwindow.h \
- D:/Qt/6.8.3/mingw_64/include/QtWidgets/qtwidgetsglobal.h \
- D:/Qt/6.8.3/mingw_64/include/QtGui/qtguiglobal.h \
+ D:\TankBattle\TankBattle_rxc\build\Desktop_Qt_6_8_3_MinGW_64_bit-Debug\TankBattle_rxc_autogen\EWIEGA46WW/moc_explosion.cpp \
+ D:/TankBattle/TankBattle_rxc/explosion.h \
+ D:/Qt/6.8.3/mingw_64/include/QtCore/QObject \
+ D:/Qt/6.8.3/mingw_64/include/QtCore/qobject.h \
+ D:/Qt/6.8.3/mingw_64/include/QtCore/qobjectdefs.h \
+ D:/Qt/6.8.3/mingw_64/include/QtCore/qnamespace.h \
  D:/Qt/6.8.3/mingw_64/include/QtCore/qglobal.h \
  D:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/type_traits \
  D:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/x86_64-w64-mingw32/bits/c++config.h \
@@ -143,14 +143,6 @@ CMakeFiles/TankBattle_rxc.dir/TankBattle_rxc_autogen/mocs_compilation.cpp.obj: \
  D:/Qt/6.8.3/mingw_64/include/QtCore/qtresource.h \
  D:/Qt/6.8.3/mingw_64/include/QtCore/qttranslation.h \
  D:/Qt/6.8.3/mingw_64/include/QtCore/qversiontagging.h \
- D:/Qt/6.8.3/mingw_64/include/QtGui/qtgui-config.h \
- D:/Qt/6.8.3/mingw_64/include/QtGui/qtguiexports.h \
- D:/Qt/6.8.3/mingw_64/include/QtWidgets/qtwidgets-config.h \
- D:/Qt/6.8.3/mingw_64/include/QtWidgets/qtwidgetsexports.h \
- D:/Qt/6.8.3/mingw_64/include/QtWidgets/qwidget.h \
- D:/Qt/6.8.3/mingw_64/include/QtGui/qwindowdefs.h \
- D:/Qt/6.8.3/mingw_64/include/QtCore/qobjectdefs.h \
- D:/Qt/6.8.3/mingw_64/include/QtCore/qnamespace.h \
  D:/Qt/6.8.3/mingw_64/include/QtCore/qcompare.h \
  D:/Qt/6.8.3/mingw_64/include/QtCore/qcomparehelpers.h \
  D:/Qt/6.8.3/mingw_64/include/QtCore/q20type_traits.h \
@@ -228,8 +220,6 @@ CMakeFiles/TankBattle_rxc.dir/TankBattle_rxc_autogen/mocs_compilation.cpp.obj: \
  D:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/backward/auto_ptr.h \
  D:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/pstl/glue_memory_defs.h \
  D:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/pstl/execution_defs.h \
- D:/Qt/6.8.3/mingw_64/include/QtGui/qwindowdefs_win.h \
- D:/Qt/6.8.3/mingw_64/include/QtCore/qobject.h \
  D:/Qt/6.8.3/mingw_64/include/QtCore/qstring.h \
  D:/Qt/6.8.3/mingw_64/include/QtCore/qchar.h \
  D:/Qt/6.8.3/mingw_64/include/QtCore/qstringview.h \
@@ -328,42 +318,63 @@ CMakeFiles/TankBattle_rxc.dir/TankBattle_rxc_autogen/mocs_compilation.cpp.obj: \
  D:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/bits/chrono.h \
  D:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/ratio \
  D:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/ctime \
- D:/Qt/6.8.3/mingw_64/include/QtCore/qmargins.h \
- D:/Qt/6.8.3/mingw_64/include/QtCore/q23utility.h \
- D:/Qt/6.8.3/mingw_64/include/QtCore/q20utility.h \
- D:/Qt/6.8.3/mingw_64/include/QtGui/qaction.h \
- D:/Qt/6.8.3/mingw_64/include/QtGui/qkeysequence.h \
- D:/Qt/6.8.3/mingw_64/include/QtGui/qicon.h \
- D:/Qt/6.8.3/mingw_64/include/QtCore/qsize.h \
- D:/Qt/6.8.3/mingw_64/include/QtGui/qpixmap.h \
- D:/Qt/6.8.3/mingw_64/include/QtGui/qpaintdevice.h \
- D:/Qt/6.8.3/mingw_64/include/QtCore/qrect.h \
- D:/Qt/6.8.3/mingw_64/include/QtCore/qpoint.h \
- D:/Qt/6.8.3/mingw_64/include/QtGui/qcolor.h \
- D:/Qt/6.8.3/mingw_64/include/QtGui/qrgb.h \
- D:/Qt/6.8.3/mingw_64/include/QtGui/qrgba64.h \
- D:/Qt/6.8.3/mingw_64/include/QtCore/qshareddata.h \
- D:/Qt/6.8.3/mingw_64/include/QtGui/qimage.h \
- D:/Qt/6.8.3/mingw_64/include/QtGui/qpixelformat.h \
- D:/Qt/6.8.3/mingw_64/include/QtGui/qtransform.h \
- D:/Qt/6.8.3/mingw_64/include/QtGui/qpolygon.h \
- D:/Qt/6.8.3/mingw_64/include/QtGui/qregion.h \
- D:/Qt/6.8.3/mingw_64/include/QtCore/qspan.h \
- D:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/cassert \
- D:/Qt/6.8.3/mingw_64/include/QtCore/q20iterator.h \
- D:/Qt/6.8.3/mingw_64/include/QtCore/qline.h \
+ D:/Qt/6.8.3/mingw_64/include/QtWidgets/QGraphicsPixmapItem \
+ D:/Qt/6.8.3/mingw_64/include/QtWidgets/qgraphicsitem.h \
+ D:/Qt/6.8.3/mingw_64/include/QtWidgets/qtwidgetsglobal.h \
+ D:/Qt/6.8.3/mingw_64/include/QtGui/qtguiglobal.h \
+ D:/Qt/6.8.3/mingw_64/include/QtGui/qtgui-config.h \
+ D:/Qt/6.8.3/mingw_64/include/QtGui/qtguiexports.h \
+ D:/Qt/6.8.3/mingw_64/include/QtWidgets/qtwidgets-config.h \
+ D:/Qt/6.8.3/mingw_64/include/QtWidgets/qtwidgetsexports.h \
+ D:/Qt/6.8.3/mingw_64/include/QtCore/qobject.h \
  D:/Qt/6.8.3/mingw_64/include/QtCore/qvariant.h \
  D:/Qt/6.8.3/mingw_64/include/QtCore/qdebug.h \
  D:/Qt/6.8.3/mingw_64/include/QtCore/qtextstream.h \
  D:/Qt/6.8.3/mingw_64/include/QtCore/qcontiguouscache.h \
  D:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/climits \
  D:/Qt/6.8.3/mingw_64/include/QtCore/qsharedpointer.h \
+ D:/Qt/6.8.3/mingw_64/include/QtCore/qshareddata.h \
  D:/Qt/6.8.3/mingw_64/include/QtCore/qsharedpointer_impl.h \
  D:/Qt/6.8.3/mingw_64/include/QtCore/qmap.h \
  D:/Qt/6.8.3/mingw_64/include/QtCore/qshareddata_impl.h \
  D:/Qt/6.8.3/mingw_64/include/QtCore/qset.h \
  D:/Qt/6.8.3/mingw_64/include/QtCore/qhash.h \
  D:/Qt/6.8.3/mingw_64/include/QtCore/qvarlengtharray.h \
+ D:/Qt/6.8.3/mingw_64/include/QtCore/q23utility.h \
+ D:/Qt/6.8.3/mingw_64/include/QtCore/q20utility.h \
+ D:/Qt/6.8.3/mingw_64/include/QtCore/qrect.h \
+ D:/Qt/6.8.3/mingw_64/include/QtCore/qmargins.h \
+ D:/Qt/6.8.3/mingw_64/include/QtCore/qsize.h \
+ D:/Qt/6.8.3/mingw_64/include/QtCore/qpoint.h \
+ D:/Qt/6.8.3/mingw_64/include/QtGui/qpainterpath.h \
+ D:/Qt/6.8.3/mingw_64/include/QtGui/qtransform.h \
+ D:/Qt/6.8.3/mingw_64/include/QtGui/qpolygon.h \
+ D:/Qt/6.8.3/mingw_64/include/QtGui/qregion.h \
+ D:/Qt/6.8.3/mingw_64/include/QtGui/qwindowdefs.h \
+ D:/Qt/6.8.3/mingw_64/include/QtGui/qwindowdefs_win.h \
+ D:/Qt/6.8.3/mingw_64/include/QtCore/qspan.h \
+ D:/Qt/Tools/mingw1310_64/lib/gcc/x86_64-w64-mingw32/13.1.0/include/c++/cassert \
+ D:/Qt/6.8.3/mingw_64/include/QtCore/q20iterator.h \
+ D:/Qt/6.8.3/mingw_64/include/QtCore/qline.h \
+ D:/Qt/6.8.3/mingw_64/include/QtGui/qpixmap.h \
+ D:/Qt/6.8.3/mingw_64/include/QtGui/qpaintdevice.h \
+ D:/Qt/6.8.3/mingw_64/include/QtGui/qcolor.h \
+ D:/Qt/6.8.3/mingw_64/include/QtGui/qrgb.h \
+ D:/Qt/6.8.3/mingw_64/include/QtGui/qrgba64.h \
+ D:/Qt/6.8.3/mingw_64/include/QtGui/qimage.h \
+ D:/Qt/6.8.3/mingw_64/include/QtGui/qpixelformat.h \
+ D:/Qt/6.8.3/mingw_64/include/QtCore/QTimer \
+ D:/Qt/6.8.3/mingw_64/include/QtCore/qtimer.h \
+ D:/Qt/6.8.3/mingw_64/include/QtCore/qbasictimer.h \
+ D:/Qt/6.8.3/mingw_64/include/QtCore/qtmochelpers.h \
+ D:\TankBattle\TankBattle_rxc\build\Desktop_Qt_6_8_3_MinGW_64_bit-Debug\TankBattle_rxc_autogen\EWIEGA46WW/moc_mainwindow.cpp \
+ D:/TankBattle/TankBattle_rxc/mainwindow.h \
+ D:/Qt/6.8.3/mingw_64/include/QtWidgets/QMainWindow \
+ D:/Qt/6.8.3/mingw_64/include/QtWidgets/qmainwindow.h \
+ D:/Qt/6.8.3/mingw_64/include/QtWidgets/qwidget.h \
+ D:/Qt/6.8.3/mingw_64/include/QtGui/qaction.h \
+ D:/Qt/6.8.3/mingw_64/include/QtGui/qkeysequence.h \
+ D:/Qt/6.8.3/mingw_64/include/QtGui/qicon.h \
  D:/Qt/6.8.3/mingw_64/include/QtGui/qpalette.h \
  D:/Qt/6.8.3/mingw_64/include/QtGui/qbrush.h \
  D:/Qt/6.8.3/mingw_64/include/QtGui/qfont.h \
@@ -387,17 +398,11 @@ CMakeFiles/TankBattle_rxc.dir/TankBattle_rxc_autogen/mocs_compilation.cpp.obj: \
  D:/Qt/6.8.3/mingw_64/include/QtWidgets/qgraphicsscene.h \
  D:/Qt/6.8.3/mingw_64/include/QtCore/QList \
  D:/Qt/6.8.3/mingw_64/include/QtCore/qlist.h \
- D:/Qt/6.8.3/mingw_64/include/QtCore/QTimer \
- D:/Qt/6.8.3/mingw_64/include/QtCore/qtimer.h \
- D:/Qt/6.8.3/mingw_64/include/QtCore/qbasictimer.h \
  D:/TankBattle/TankBattle_rxc/common.h \
  D:/TankBattle/TankBattle_rxc/player.h \
  D:/TankBattle/TankBattle_rxc/tank.h \
  D:/Qt/6.8.3/mingw_64/include/QtWidgets/QGraphicsRectItem \
- D:/Qt/6.8.3/mingw_64/include/QtWidgets/qgraphicsitem.h \
- D:/Qt/6.8.3/mingw_64/include/QtGui/qpainterpath.h \
  D:/Qt/6.8.3/mingw_64/include/QtCore/QPointF \
  D:/Qt/6.8.3/mingw_64/include/QtCore/qpoint.h \
  D:/TankBattle/TankBattle_rxc/enemy.h D:/TankBattle/TankBattle_rxc/wall.h \
- D:/TankBattle/TankBattle_rxc/bullet.h \
- D:/Qt/6.8.3/mingw_64/include/QtCore/qtmochelpers.h
+ D:/TankBattle/TankBattle_rxc/bullet.h

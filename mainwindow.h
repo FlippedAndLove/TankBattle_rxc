@@ -40,9 +40,17 @@ private:
 
     // UI文字
     QGraphicsTextItem *idText;
+    QGraphicsTextItem*scoreDisplay;
 
     // 主循环定时器
     QTimer *gameLoopTimer;
+
+    // 地图数据
+    int mapData[MAP_ROWS][MAP_COLS];
+    // 存储所有地形对象（用于清理）
+    QList<QGraphicsItem*> terrainItems;
+    // 时间相关
+    qint64 lastTime;
 
 public:
     MainWindow(QWidget *parent = nullptr);
@@ -51,14 +59,13 @@ public:
     void initGame();
     void clearGame();
     void initBackground();
-    void initRXCWalls();
-    void createLetter(bool shape[][5], int rows, int cols, int offsetX, int offsetY);
     void initEnemies();
     void updateUI();
     void fireBullet(Tank *tank);
-    void moveTank(Tank *tank, int dx, int dy);
+    void moveTank(Tank *tank, qreal dx, qreal dy);
     void gameOver(bool win);
     void resetGame();
+    void initMap();//地图初始化函数
 
 protected:
     void keyPressEvent(QKeyEvent *event) override;

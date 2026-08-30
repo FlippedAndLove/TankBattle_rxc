@@ -195,6 +195,36 @@ CMakeFiles/TankBattle_rxc.dir/enemy.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/TankBattle_rxc.dir/enemy.cpp.s"
 	D:\Qt\Tools\mingw1310_64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S D:\TankBattle\TankBattle_rxc\enemy.cpp -o CMakeFiles\TankBattle_rxc.dir\enemy.cpp.s
 
+CMakeFiles/TankBattle_rxc.dir/steelwall.cpp.obj: CMakeFiles/TankBattle_rxc.dir/flags.make
+CMakeFiles/TankBattle_rxc.dir/steelwall.cpp.obj: CMakeFiles/TankBattle_rxc.dir/includes_CXX.rsp
+CMakeFiles/TankBattle_rxc.dir/steelwall.cpp.obj: D:/TankBattle/TankBattle_rxc/steelwall.cpp
+CMakeFiles/TankBattle_rxc.dir/steelwall.cpp.obj: CMakeFiles/TankBattle_rxc.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=D:\TankBattle\TankBattle_rxc\build\Desktop_Qt_6_8_3_MinGW_64_bit-Debug\CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/TankBattle_rxc.dir/steelwall.cpp.obj"
+	D:\Qt\Tools\mingw1310_64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/TankBattle_rxc.dir/steelwall.cpp.obj -MF CMakeFiles\TankBattle_rxc.dir\steelwall.cpp.obj.d -o CMakeFiles\TankBattle_rxc.dir\steelwall.cpp.obj -c D:\TankBattle\TankBattle_rxc\steelwall.cpp
+
+CMakeFiles/TankBattle_rxc.dir/steelwall.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/TankBattle_rxc.dir/steelwall.cpp.i"
+	D:\Qt\Tools\mingw1310_64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E D:\TankBattle\TankBattle_rxc\steelwall.cpp > CMakeFiles\TankBattle_rxc.dir\steelwall.cpp.i
+
+CMakeFiles/TankBattle_rxc.dir/steelwall.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/TankBattle_rxc.dir/steelwall.cpp.s"
+	D:\Qt\Tools\mingw1310_64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S D:\TankBattle\TankBattle_rxc\steelwall.cpp -o CMakeFiles\TankBattle_rxc.dir\steelwall.cpp.s
+
+CMakeFiles/TankBattle_rxc.dir/explosion.cpp.obj: CMakeFiles/TankBattle_rxc.dir/flags.make
+CMakeFiles/TankBattle_rxc.dir/explosion.cpp.obj: CMakeFiles/TankBattle_rxc.dir/includes_CXX.rsp
+CMakeFiles/TankBattle_rxc.dir/explosion.cpp.obj: D:/TankBattle/TankBattle_rxc/explosion.cpp
+CMakeFiles/TankBattle_rxc.dir/explosion.cpp.obj: CMakeFiles/TankBattle_rxc.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=D:\TankBattle\TankBattle_rxc\build\Desktop_Qt_6_8_3_MinGW_64_bit-Debug\CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object CMakeFiles/TankBattle_rxc.dir/explosion.cpp.obj"
+	D:\Qt\Tools\mingw1310_64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/TankBattle_rxc.dir/explosion.cpp.obj -MF CMakeFiles\TankBattle_rxc.dir\explosion.cpp.obj.d -o CMakeFiles\TankBattle_rxc.dir\explosion.cpp.obj -c D:\TankBattle\TankBattle_rxc\explosion.cpp
+
+CMakeFiles/TankBattle_rxc.dir/explosion.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/TankBattle_rxc.dir/explosion.cpp.i"
+	D:\Qt\Tools\mingw1310_64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E D:\TankBattle\TankBattle_rxc\explosion.cpp > CMakeFiles\TankBattle_rxc.dir\explosion.cpp.i
+
+CMakeFiles/TankBattle_rxc.dir/explosion.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/TankBattle_rxc.dir/explosion.cpp.s"
+	D:\Qt\Tools\mingw1310_64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S D:\TankBattle\TankBattle_rxc\explosion.cpp -o CMakeFiles\TankBattle_rxc.dir\explosion.cpp.s
+
 # Object files for target TankBattle_rxc
 TankBattle_rxc_OBJECTS = \
 "CMakeFiles/TankBattle_rxc.dir/TankBattle_rxc_autogen/mocs_compilation.cpp.obj" \
@@ -204,7 +234,9 @@ TankBattle_rxc_OBJECTS = \
 "CMakeFiles/TankBattle_rxc.dir/bullet.cpp.obj" \
 "CMakeFiles/TankBattle_rxc.dir/tank.cpp.obj" \
 "CMakeFiles/TankBattle_rxc.dir/player.cpp.obj" \
-"CMakeFiles/TankBattle_rxc.dir/enemy.cpp.obj"
+"CMakeFiles/TankBattle_rxc.dir/enemy.cpp.obj" \
+"CMakeFiles/TankBattle_rxc.dir/steelwall.cpp.obj" \
+"CMakeFiles/TankBattle_rxc.dir/explosion.cpp.obj"
 
 # External object files for target TankBattle_rxc
 TankBattle_rxc_EXTERNAL_OBJECTS =
@@ -217,6 +249,8 @@ TankBattle_rxc.exe: CMakeFiles/TankBattle_rxc.dir/bullet.cpp.obj
 TankBattle_rxc.exe: CMakeFiles/TankBattle_rxc.dir/tank.cpp.obj
 TankBattle_rxc.exe: CMakeFiles/TankBattle_rxc.dir/player.cpp.obj
 TankBattle_rxc.exe: CMakeFiles/TankBattle_rxc.dir/enemy.cpp.obj
+TankBattle_rxc.exe: CMakeFiles/TankBattle_rxc.dir/steelwall.cpp.obj
+TankBattle_rxc.exe: CMakeFiles/TankBattle_rxc.dir/explosion.cpp.obj
 TankBattle_rxc.exe: CMakeFiles/TankBattle_rxc.dir/build.make
 TankBattle_rxc.exe: D:/Qt/6.8.3/mingw_64/lib/libQt6Widgets.a
 TankBattle_rxc.exe: D:/Qt/6.8.3/mingw_64/lib/libQt6Gui.a
@@ -225,7 +259,7 @@ TankBattle_rxc.exe: D:/Qt/6.8.3/mingw_64/lib/libQt6EntryPoint.a
 TankBattle_rxc.exe: CMakeFiles/TankBattle_rxc.dir/linkLibs.rsp
 TankBattle_rxc.exe: CMakeFiles/TankBattle_rxc.dir/objects1.rsp
 TankBattle_rxc.exe: CMakeFiles/TankBattle_rxc.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=D:\TankBattle\TankBattle_rxc\build\Desktop_Qt_6_8_3_MinGW_64_bit-Debug\CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Linking CXX executable TankBattle_rxc.exe"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=D:\TankBattle\TankBattle_rxc\build\Desktop_Qt_6_8_3_MinGW_64_bit-Debug\CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Linking CXX executable TankBattle_rxc.exe"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles\TankBattle_rxc.dir\link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

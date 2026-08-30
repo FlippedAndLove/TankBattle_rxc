@@ -10,7 +10,7 @@ private:
 
 public:
     Bullet(int dir, qreal x, qreal y);
-    void move();
+    void move(float dt);
     int getDirection() const;
 };
 

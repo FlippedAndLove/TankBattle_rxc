@@ -271,6 +271,30 @@ enemy.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\TankBattle_rxc.dir\build.make CMakeFiles/TankBattle_rxc.dir/enemy.cpp.s
 .PHONY : enemy.cpp.s
 
+explosion.obj: explosion.cpp.obj
+.PHONY : explosion.obj
+
+# target to build an object file
+explosion.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\TankBattle_rxc.dir\build.make CMakeFiles/TankBattle_rxc.dir/explosion.cpp.obj
+.PHONY : explosion.cpp.obj
+
+explosion.i: explosion.cpp.i
+.PHONY : explosion.i
+
+# target to preprocess a source file
+explosion.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\TankBattle_rxc.dir\build.make CMakeFiles/TankBattle_rxc.dir/explosion.cpp.i
+.PHONY : explosion.cpp.i
+
+explosion.s: explosion.cpp.s
+.PHONY : explosion.s
+
+# target to generate assembly for a file
+explosion.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\TankBattle_rxc.dir\build.make CMakeFiles/TankBattle_rxc.dir/explosion.cpp.s
+.PHONY : explosion.cpp.s
+
 main.obj: main.cpp.obj
 .PHONY : main.obj
 
@@ -342,6 +366,30 @@ player.s: player.cpp.s
 player.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\TankBattle_rxc.dir\build.make CMakeFiles/TankBattle_rxc.dir/player.cpp.s
 .PHONY : player.cpp.s
+
+steelwall.obj: steelwall.cpp.obj
+.PHONY : steelwall.obj
+
+# target to build an object file
+steelwall.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\TankBattle_rxc.dir\build.make CMakeFiles/TankBattle_rxc.dir/steelwall.cpp.obj
+.PHONY : steelwall.cpp.obj
+
+steelwall.i: steelwall.cpp.i
+.PHONY : steelwall.i
+
+# target to preprocess a source file
+steelwall.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\TankBattle_rxc.dir\build.make CMakeFiles/TankBattle_rxc.dir/steelwall.cpp.i
+.PHONY : steelwall.cpp.i
+
+steelwall.s: steelwall.cpp.s
+.PHONY : steelwall.s
+
+# target to generate assembly for a file
+steelwall.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\TankBattle_rxc.dir\build.make CMakeFiles/TankBattle_rxc.dir/steelwall.cpp.s
+.PHONY : steelwall.cpp.s
 
 tank.obj: tank.cpp.obj
 .PHONY : tank.obj
@@ -415,6 +463,9 @@ help:
 	@echo ... enemy.obj
 	@echo ... enemy.i
 	@echo ... enemy.s
+	@echo ... explosion.obj
+	@echo ... explosion.i
+	@echo ... explosion.s
 	@echo ... main.obj
 	@echo ... main.i
 	@echo ... main.s
@@ -424,6 +475,9 @@ help:
 	@echo ... player.obj
 	@echo ... player.i
 	@echo ... player.s
+	@echo ... steelwall.obj
+	@echo ... steelwall.i
+	@echo ... steelwall.s
 	@echo ... tank.obj
 	@echo ... tank.i
 	@echo ... tank.s

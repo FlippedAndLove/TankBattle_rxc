@@ -12,13 +12,13 @@ Bullet::Bullet(int dir, qreal x, qreal y)
     setZValue(2);
 }
 
-void Bullet::move() {
-    int dx = 0, dy = 0;
+void Bullet::move(float dt) {
+    qreal dx = 0, dy = 0;
     switch(direction) {
-    case Qt::Key_Up:    dy = -BULLET_SPEED; break;
-    case Qt::Key_Down:  dy =  BULLET_SPEED; break;
-    case Qt::Key_Left:  dx = -BULLET_SPEED; break;
-    case Qt::Key_Right: dx =  BULLET_SPEED; break;
+    case Qt::Key_Up:    dy = -BULLET_SPEED*dt; break;
+    case Qt::Key_Down:  dy =  BULLET_SPEED*dt; break;
+    case Qt::Key_Left:  dx = -BULLET_SPEED*dt; break;
+    case Qt::Key_Right: dx =  BULLET_SPEED*dt; break;
     }
     setPos(x() + dx, y() + dy);
 }

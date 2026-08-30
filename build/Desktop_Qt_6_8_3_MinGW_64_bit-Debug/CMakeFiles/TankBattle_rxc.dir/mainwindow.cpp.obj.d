@@ -457,4 +457,13 @@ CMakeFiles/TankBattle_rxc.dir/mainwindow.cpp.obj: \
  D:/Qt/6.8.3/mingw_64/include/QtGui/QPen \
  D:/Qt/6.8.3/mingw_64/include/QtGui/qpen.h \
  D:/Qt/6.8.3/mingw_64/include/QtGui/QColor \
- D:/Qt/6.8.3/mingw_64/include/QtGui/qcolor.h
+ D:/Qt/6.8.3/mingw_64/include/QtGui/qcolor.h \
+ D:/Qt/6.8.3/mingw_64/include/QtCore/QDateTime \
+ D:/Qt/6.8.3/mingw_64/include/QtCore/qdatetime.h \
+ D:/Qt/6.8.3/mingw_64/include/QtCore/qcalendar.h \
+ D:/Qt/6.8.3/mingw_64/include/QtCore/QDebug \
+ D:/Qt/6.8.3/mingw_64/include/QtCore/qdebug.h \
+ D:\TankBattle\TankBattle_rxc\steelwall.h \
+ D:\TankBattle\TankBattle_rxc\explosion.h \
+ D:/Qt/6.8.3/mingw_64/include/QtCore/QObject \
+ D:/Qt/6.8.3/mingw_64/include/QtWidgets/QGraphicsPixmapItem

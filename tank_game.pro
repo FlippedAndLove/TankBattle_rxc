@@ -10,7 +10,9 @@ SOURCES += \
     player.cpp \
     enemy.cpp \
     bullet.cpp \
-    wall.cpp
+    wall.cpp \
+    steelwall.cpp \
+    explosion.cpp
 
 HEADERS  += \
     mainwindow.h \
@@ -18,4 +20,6 @@ HEADERS  += \
     player.h \
     enemy.h \
     bullet.h \
-    wall.h
+    wall.h \
+    steelwall.h \
+    explosion.h
