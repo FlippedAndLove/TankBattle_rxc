@@ -118,7 +118,7 @@ void MainWindow::initGame() {
     initBackground();
     initMap();
 
-    player = new PlayerTank(160, 480);
+    player = new PlayerTank(160, 500);
     scene->addItem(player);
 
     startWave(1);
@@ -410,7 +410,7 @@ void MainWindow::spawnEnemy(qint64 nowMs) {
 }
 
 void MainWindow::respawnPlayer() {
-    player->setPos(160, 480);
+    player->setPos(160, 500);
     player->setDirection(Qt::Key_Up);
     player->setAlive(true);
     player->setVisible(true);
@@ -639,9 +639,12 @@ bool MainWindow::moveTank(Tank *tank, qreal dx, qreal dy) {
 
 bool MainWindow::isBlocked(Tank *tank) const {
     QList<QGraphicsItem*> colliding = tank->collidingItems();
+    QRectF tankBody = tank->mapRectToScene(tank->rect()).adjusted(1.0, 1.0, -1.0, -1.0);
     for (QGraphicsItem *item : colliding) {
         int type = item->data(0).toInt();
         if (type == TYPE_WALL || type == TYPE_STEEL_WALL || type == TYPE_ENEMY || type == TYPE_PLAYER) {
+            QRectF overlap = tankBody.intersected(item->sceneBoundingRect());
+            if (!overlap.isValid()) continue;
             if (type == TYPE_ENEMY || type == TYPE_PLAYER) {
                 Tank *other = static_cast<Tank*>(item);
                 if (!other->isAlive()) continue;
@@ -759,6 +762,8 @@ void MainWindow::gameLoop() {
             else if (type == TYPE_ENEMY) {
                 EnemyTank *enemy = static_cast<EnemyTank*>(item);
                 if (!enemy->isAlive()) continue;
+                // 敌方子弹不会误伤友军；玩家子弹仍可正常击毁敌人
+                if (!bullet->getOwner() || bullet->getOwner()->data(0).toInt() == TYPE_ENEMY) continue;
                 enemy->setAlive(false);
                 scene->removeItem(enemy);
                 //创建爆炸特效
